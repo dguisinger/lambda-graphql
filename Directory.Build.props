@@ -5,7 +5,7 @@
     <Company>Amazon Web Services</Company>
     <Product>Lambda.GraphQL</Product>
     <Copyright>Copyright © Amazon Web Services</Copyright>
-    <PackageLicenseExpression>BSD</PackageLicenseExpression>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/aws/lambda-graphql</PackageProjectUrl>
     <RepositoryUrl>https://github.com/aws/lambda-graphql</RepositoryUrl>
     <RepositoryType>git</RepositoryType>

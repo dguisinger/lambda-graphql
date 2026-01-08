@@ -11,6 +11,20 @@ public sealed class TypeInfo
     public string? Description { get; set; }
     public TypeKind Kind { get; set; }
     public List<FieldInfo> Fields { get; set; } = new();
+    public bool IsInterface { get; set; }
+    public bool IsEnum { get; set; }
+    public List<EnumValueInfo> EnumValues { get; set; } = new();
+}
+
+/// <summary>
+/// Represents a GraphQL enum value.
+/// </summary>
+public sealed class EnumValueInfo
+{
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public bool IsDeprecated { get; set; }
+    public string? DeprecationReason { get; set; }
 }
 
 /// <summary>

@@ -498,9 +498,9 @@ foreach (var resolver in resolverManifest.Resolvers)
 
 **Goal:** Generate valid GraphQL SDL from C# types and Lambda functions
 
-- [ ] Project structure setup
-- [ ] Core attributes (GraphQLType, GraphQLField, GraphQLQuery, GraphQLMutation)
-- [ ] Source generator for type extraction
+- [x] Project structure setup
+- [x] Core attributes (GraphQLType, GraphQLField, GraphQLQuery, GraphQLMutation)
+- [x] Source generator for type extraction
 - [ ] SDL generation for basic types (Object, Input, Enum)
 - [ ] MSBuild task for schema extraction
 - [ ] Basic tests

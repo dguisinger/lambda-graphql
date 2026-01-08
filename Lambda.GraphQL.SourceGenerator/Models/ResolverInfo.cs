@@ -12,6 +12,10 @@ public sealed class ResolverInfo
     public ResolverKind Kind { get; set; }
     public string? DataSource { get; set; }
     public string? LambdaFunctionName { get; set; }
+    public string? LambdaFunctionLogicalId { get; set; }
+    public string Runtime { get; set; } = "APPSYNC_JS";
+    public string? RequestMapping { get; set; }
+    public string? ResponseMapping { get; set; }
     public List<string> Functions { get; set; } = new();
 }
 
