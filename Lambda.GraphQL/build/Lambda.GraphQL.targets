@@ -1,0 +1,18 @@
+<Project>
+  <!-- This file defines the MSBuild targets for Lambda.GraphQL -->
+  
+  <UsingTask TaskName="Lambda.GraphQL.Build.ExtractGraphQLSchemaTask" 
+             AssemblyFile="$(MSBuildThisFileDirectory)../tools/Lambda.GraphQL.Build.dll" />
+
+  <Target Name="ExtractGraphQLSchema" 
+          AfterTargets="Build" 
+          Condition="'$(EnableLambdaGraphQLSchemaGeneration)' == 'true'">
+    
+    <ExtractGraphQLSchemaTask AssemblyPath="$(TargetPath)"
+                              OutputDirectory="$(GraphQLSchemaOutputDirectory)"
+                              SchemaFileName="$(GraphQLSchemaFileName)"
+                              ResolverFileName="$(GraphQLResolverFileName)" />
+    
+  </Target>
+
+</Project>

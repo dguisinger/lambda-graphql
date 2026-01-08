@@ -1,0 +1,25 @@
+<Project>
+  <PropertyGroup>
+    <Version>0.1.0</Version>
+    <Authors>AWS Lambda GraphQL Team</Authors>
+    <Company>Amazon Web Services</Company>
+    <Product>Lambda.GraphQL</Product>
+    <Copyright>Copyright © Amazon Web Services</Copyright>
+    <PackageLicenseExpression>BSD</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/aws/lambda-graphql</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/aws/lambda-graphql</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <WarningsAsErrors />
+    <WarningsNotAsErrors>NU1701</WarningsNotAsErrors>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+</Project>
