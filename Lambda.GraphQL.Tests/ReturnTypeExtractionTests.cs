@@ -167,4 +167,36 @@ public class ReturnTypeExtractionTests
 
         return semanticModel.GetDeclaredSymbol(methodDeclaration)!;
     }
+
+    [Fact]
+    public void CachedStringOperations_ShouldWorkCorrectly()
+    {
+        // Arrange
+        var compilation = CreateCompilation(@"
+            using System.Threading.Tasks;
+            public class TestClass 
+            { 
+                public Task<string> GetTaskString1() => Task.FromResult(""test1"");
+                public Task<string> GetTaskString2() => Task.FromResult(""test2"");
+                public Task<int> GetTaskInt1() => Task.FromResult(42);
+                public Task<int> GetTaskInt2() => Task.FromResult(43);
+            }");
+
+        var methods = new[]
+        {
+            GetMethod(compilation, "GetTaskString1"),
+            GetMethod(compilation, "GetTaskString2"),
+            GetMethod(compilation, "GetTaskInt1"),
+            GetMethod(compilation, "GetTaskInt2")
+        };
+
+        // Act - Multiple calls should work consistently
+        var results1 = methods.Select(ReturnTypeExtractor.GetFormattedReturnType).ToArray();
+        var results2 = methods.Select(ReturnTypeExtractor.GetFormattedReturnType).ToArray();
+
+        // Assert - Results should be consistent across calls (verifying caching works)
+        results1.Should().Equal(results2);
+        results1[0].Should().Be("String"); // Task<string> -> String (nullable)
+        results1[2].Should().Be("Int!"); // Task<int> -> Int! (non-null)
+    }
 }

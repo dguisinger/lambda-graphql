@@ -1,4 +1,5 @@
 using Microsoft.CodeAnalysis;
+using System.Collections.Concurrent;
 using System.Linq;
 
 namespace Lambda.GraphQL.SourceGenerator;
@@ -8,6 +9,16 @@ namespace Lambda.GraphQL.SourceGenerator;
 /// </summary>
 public static class ReturnTypeExtractor
 {
+    // Cache for expensive ConstructedFrom.ToDisplayString() operations
+    private static readonly ConcurrentDictionary<INamedTypeSymbol, string> ConstructedFromCache = new(SymbolEqualityComparer.Default);
+
+    /// <summary>
+    /// Gets the cached ConstructedFrom display string for a named type symbol.
+    /// </summary>
+    private static string GetCachedConstructedFrom(INamedTypeSymbol namedType)
+    {
+        return ConstructedFromCache.GetOrAdd(namedType.ConstructedFrom, key => key.ToDisplayString());
+    }
     /// <summary>
     /// Extracts the GraphQL return type from a method symbol.
     /// </summary>
@@ -23,7 +34,7 @@ public static class ReturnTypeExtractor
         // Handle Task<T> and ValueTask<T> - unwrap to get the actual return type
         if (returnType is INamedTypeSymbol namedReturnType && namedReturnType.IsGenericType)
         {
-            var constructedFrom = namedReturnType.ConstructedFrom.ToDisplayString();
+            var constructedFrom = GetCachedConstructedFrom(namedReturnType);
             // Check for Task<T> pattern - the constructed from will be like "System.Threading.Tasks.Task<T>"
             if (constructedFrom.StartsWith("System.Threading.Tasks.Task<") ||
                 constructedFrom.StartsWith("System.Threading.Tasks.ValueTask<"))
@@ -67,7 +78,7 @@ public static class ReturnTypeExtractor
         // Handle Task<T> and ValueTask<T> - unwrap to get the actual return type
         if (returnType is INamedTypeSymbol namedReturnType && namedReturnType.IsGenericType)
         {
-            var constructedFrom = namedReturnType.ConstructedFrom.ToDisplayString();
+            var constructedFrom = GetCachedConstructedFrom(namedReturnType);
             if (constructedFrom.StartsWith("System.Threading.Tasks.Task<") ||
                 constructedFrom.StartsWith("System.Threading.Tasks.ValueTask<"))
             {

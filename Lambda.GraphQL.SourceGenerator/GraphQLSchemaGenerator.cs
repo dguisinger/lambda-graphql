@@ -17,19 +17,17 @@ public partial class GraphQLSchemaGenerator : IIncrementalGenerator
 {
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        // Find classes with GraphQL type attributes
+        // Find classes with GraphQL type attributes - collect diagnostics
         var typeDeclarations = context.SyntaxProvider
             .CreateSyntaxProvider(
                 predicate: (s, _) => IsGraphQLType(s),
-                transform: (ctx, _) => ExtractTypeInfo(ctx))
-            .Where(t => t != null);
+                transform: (ctx, _) => ExtractTypeInfoWithDiagnostics(ctx));
 
-        // Find Lambda functions with GraphQL operation attributes
+        // Find Lambda functions with GraphQL operation attributes - collect diagnostics
         var operationDeclarations = context.SyntaxProvider
             .CreateSyntaxProvider(
                 predicate: (s, _) => IsGraphQLOperation(s),
-                transform: (ctx, _) => ExtractOperationInfo(ctx))
-            .Where(o => o != null);
+                transform: (ctx, _) => ExtractOperationInfoWithDiagnostics(ctx));
 
         // Combine and generate schema
         var combined = typeDeclarations.Collect()
@@ -50,7 +48,7 @@ public partial class GraphQLSchemaGenerator : IIncrementalGenerator
 
         return hasGraphQLTypeAttribute;
     }
-    private static object? ExtractTypeInfo(GeneratorSyntaxContext context)
+    private static (object? result, System.Collections.Generic.IEnumerable<Diagnostic> diagnostics) ExtractTypeInfoWithDiagnostics(GeneratorSyntaxContext context)
     {
         try
         {
@@ -67,13 +65,13 @@ public partial class GraphQLSchemaGenerator : IIncrementalGenerator
             }
 
             if (typeSymbol == null)
-                return null;
+                return (null, System.Linq.Enumerable.Empty<Diagnostic>());
 
             var graphqlTypeAttr = typeSymbol.GetAttributes()
                 .FirstOrDefault(attr => attr.AttributeClass?.Name == "GraphQLTypeAttribute");
 
             if (graphqlTypeAttr == null)
-                return null;
+                return (null, System.Linq.Enumerable.Empty<Diagnostic>());
 
             var typeInfo = new Models.TypeInfo
             {
@@ -109,7 +107,7 @@ public partial class GraphQLSchemaGenerator : IIncrementalGenerator
                 ExtractFields(typeSymbol, typeInfo);
             }
 
-            return typeInfo;
+            return (typeInfo, System.Linq.Enumerable.Empty<Diagnostic>());
         }
         catch (ArgumentException ex)
         {
@@ -118,9 +116,7 @@ public partial class GraphQLSchemaGenerator : IIncrementalGenerator
                 context.Node.GetLocation(),
                 context.Node.ToString(),
                 ex.Message);
-            // Note: We can't report diagnostics here as we don't have access to the context
-            // This will be handled in the main generation method
-            return null;
+            return (null, new[] { diagnostic });
         }
         catch (InvalidOperationException ex)
         {
@@ -129,18 +125,23 @@ public partial class GraphQLSchemaGenerator : IIncrementalGenerator
                 context.Node.GetLocation(),
                 context.Node.ToString(),
                 ex.Message);
-            return null;
+            return (null, new[] { diagnostic });
         }
         catch (System.Exception ex)
         {
-            // For unexpected exceptions, still return null but log the error type
             var diagnostic = Diagnostic.Create(
                 DiagnosticDescriptors.TypeExtractionError,
                 context.Node.GetLocation(),
                 context.Node.ToString(),
                 $"Unexpected error: {ex.GetType().Name} - {ex.Message}");
-            return null;
+            return (null, new[] { diagnostic });
         }
+    }
+
+    private static object? ExtractTypeInfo(GeneratorSyntaxContext context)
+    {
+        var (result, _) = ExtractTypeInfoWithDiagnostics(context);
+        return result;
     }
 
     private static string? GetAttributeStringValue(AttributeData? attribute, int index)
@@ -160,6 +161,14 @@ public partial class GraphQLSchemaGenerator : IIncrementalGenerator
         return namedArg.Value.Value?.ToString();
     }
 
+    private static bool GetAttributeBooleanValue(AttributeData? attribute, string propertyName)
+    {
+        if (attribute == null) return false;
+        var namedArg = attribute.NamedArguments.FirstOrDefault(arg => arg.Key == propertyName);
+        if (namedArg.Value.Value is bool boolValue) return boolValue;
+        return false;
+    }
+
     private static void ExtractEnumValues(INamedTypeSymbol enumSymbol, Models.TypeInfo typeInfo)
     {
         foreach (var member in enumSymbol.GetMembers().OfType<IFieldSymbol>())
@@ -173,7 +182,7 @@ public partial class GraphQLSchemaGenerator : IIncrementalGenerator
                 {
                     Name = GetAttributeStringValue(enumValueAttr, 0) ?? member.Name,
                     Description = GetAttributePropertyValue(enumValueAttr, "Description"),
-                    IsDeprecated = GetAttributePropertyValue(enumValueAttr, "Deprecated") == "True",
+                    IsDeprecated = GetAttributeBooleanValue(enumValueAttr, "Deprecated"),
                     DeprecationReason = GetAttributePropertyValue(enumValueAttr, "DeprecationReason")
                 };
 
@@ -202,7 +211,7 @@ public partial class GraphQLSchemaGenerator : IIncrementalGenerator
                     Description = GetAttributePropertyValue(fieldAttr, "Description"),
                     Type = TypeMapper.MapType(property.Type),
                     IsNullable = !TypeMapper.IsNonNull(property.Type),
-                    IsDeprecated = GetAttributePropertyValue(fieldAttr, "Deprecated") == "True",
+                    IsDeprecated = GetAttributeBooleanValue(fieldAttr, "Deprecated"),
                     DeprecationReason = GetAttributePropertyValue(fieldAttr, "DeprecationReason")
                 };
 
@@ -236,17 +245,17 @@ public partial class GraphQLSchemaGenerator : IIncrementalGenerator
 
         return hasLambdaFunction && hasGraphQLOperation;
     }
-    private static object? ExtractOperationInfo(GeneratorSyntaxContext context)
+    private static (object? result, System.Collections.Generic.IEnumerable<Diagnostic> diagnostics) ExtractOperationInfoWithDiagnostics(GeneratorSyntaxContext context)
     {
         try
         {
             if (context.Node is not MethodDeclarationSyntax method)
-                return null;
+                return (null, System.Linq.Enumerable.Empty<Diagnostic>());
 
             var semanticModel = context.SemanticModel;
             var methodSymbol = semanticModel.GetDeclaredSymbol(method);
             if (methodSymbol == null)
-                return null;
+                return (null, System.Linq.Enumerable.Empty<Diagnostic>());
 
             // Find GraphQL operation attribute
             var graphqlOpAttr = methodSymbol.GetAttributes()
@@ -256,7 +265,7 @@ public partial class GraphQLSchemaGenerator : IIncrementalGenerator
                     attr.AttributeClass?.Name == "GraphQLSubscriptionAttribute");
 
             if (graphqlOpAttr == null)
-                return null;
+                return (null, System.Linq.Enumerable.Empty<Diagnostic>());
 
             // Find resolver attribute
             var resolverAttr = methodSymbol.GetAttributes()
@@ -298,7 +307,7 @@ public partial class GraphQLSchemaGenerator : IIncrementalGenerator
                 resolverInfo.Functions.Add(functionsValue);
             }
 
-            return resolverInfo;
+            return (resolverInfo, System.Linq.Enumerable.Empty<Diagnostic>());
         }
         catch (ArgumentException ex)
         {
@@ -307,7 +316,7 @@ public partial class GraphQLSchemaGenerator : IIncrementalGenerator
                 context.Node.GetLocation(),
                 context.Node.ToString(),
                 ex.Message);
-            return null;
+            return (null, new[] { diagnostic });
         }
         catch (InvalidOperationException ex)
         {
@@ -316,7 +325,7 @@ public partial class GraphQLSchemaGenerator : IIncrementalGenerator
                 context.Node.GetLocation(),
                 context.Node.ToString(),
                 ex.Message);
-            return null;
+            return (null, new[] { diagnostic });
         }
         catch (System.Exception ex)
         {
@@ -325,21 +334,44 @@ public partial class GraphQLSchemaGenerator : IIncrementalGenerator
                 context.Node.GetLocation(),
                 context.Node.ToString(),
                 $"Unexpected error: {ex.GetType().Name} - {ex.Message}");
-            return null;
+            return (null, new[] { diagnostic });
         }
+    }
+
+    private static object? ExtractOperationInfo(GeneratorSyntaxContext context)
+    {
+        var (result, _) = ExtractOperationInfoWithDiagnostics(context);
+        return result;
     }
     
     private static void GenerateSchema(SourceProductionContext context, 
-        ((ImmutableArray<object?> Left, ImmutableArray<object?> Right) Left, Compilation Right) combined) 
+        ((ImmutableArray<(object? result, System.Collections.Generic.IEnumerable<Diagnostic> diagnostics)> Left, ImmutableArray<(object? result, System.Collections.Generic.IEnumerable<Diagnostic> diagnostics)> Right) Left, Compilation Right) combined) 
     { 
         try
         {
             var (typeAndOperationData, compilation) = combined;
             var (typeData, operationData) = typeAndOperationData;
 
+            // Collect and report all diagnostics
+            foreach (var (_, diagnostics) in typeData)
+            {
+                foreach (var diagnostic in diagnostics)
+                {
+                    context.ReportDiagnostic(diagnostic);
+                }
+            }
+            
+            foreach (var (_, diagnostics) in operationData)
+            {
+                foreach (var diagnostic in diagnostics)
+                {
+                    context.ReportDiagnostic(diagnostic);
+                }
+            }
+
             // Extract types and operations from the collected data
-            var types = typeData.OfType<Models.TypeInfo>().ToList();
-            var operations = operationData.OfType<ResolverInfo>().ToList();
+            var types = typeData.Where(t => t.result != null).Select(t => t.result).OfType<Models.TypeInfo>().ToList();
+            var operations = operationData.Where(o => o.result != null).Select(o => o.result).OfType<ResolverInfo>().ToList();
 
             if (!types.Any() && !operations.Any())
                 return;
