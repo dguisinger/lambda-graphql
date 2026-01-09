@@ -1,12 +1,27 @@
 <Project>
   <!-- This file defines the MSBuild targets for Lambda.GraphQL -->
   
+  <PropertyGroup>
+    <GraphQLSchemaOutputDirectory Condition="'$(GraphQLSchemaOutputDirectory)' == ''">$(OutputPath)</GraphQLSchemaOutputDirectory>
+    <GraphQLSchemaFileName Condition="'$(GraphQLSchemaFileName)' == ''">schema.graphql</GraphQLSchemaFileName>
+    <GraphQLResolverFileName Condition="'$(GraphQLResolverFileName)' == ''">resolvers.json</GraphQLResolverFileName>
+    <EnableLambdaGraphQLSchemaGeneration Condition="'$(EnableLambdaGraphQLSchemaGeneration)' == ''">true</EnableLambdaGraphQLSchemaGeneration>
+  </PropertyGroup>
+
   <UsingTask TaskName="Lambda.GraphQL.Build.ExtractGraphQLSchemaTask" 
-             AssemblyFile="$(MSBuildThisFileDirectory)../tools/Lambda.GraphQL.Build.dll" />
+             AssemblyFile="$(MSBuildThisFileDirectory)../tools/Lambda.GraphQL.Build.dll" 
+             Condition="Exists('$(MSBuildThisFileDirectory)../tools/Lambda.GraphQL.Build.dll')" />
+
+  <!-- Fallback: try to find the build task in the NuGet package structure -->
+  <UsingTask TaskName="Lambda.GraphQL.Build.ExtractGraphQLSchemaTask" 
+             AssemblyFile="$(MSBuildThisFileDirectory)../../Lambda.GraphQL.Build/bin/$(Configuration)/net6.0/Lambda.GraphQL.Build.dll" 
+             Condition="!Exists('$(MSBuildThisFileDirectory)../tools/Lambda.GraphQL.Build.dll') AND Exists('$(MSBuildThisFileDirectory)../../Lambda.GraphQL.Build/bin/$(Configuration)/net6.0/Lambda.GraphQL.Build.dll')" />
 
   <Target Name="ExtractGraphQLSchema" 
           AfterTargets="Build" 
-          Condition="'$(EnableLambdaGraphQLSchemaGeneration)' == 'true'">
+          Condition="'$(EnableLambdaGraphQLSchemaGeneration)' == 'true' AND '$(TargetPath)' != ''">
+    
+    <Message Text="Lambda.GraphQL: Extracting schema from $(TargetPath)" Importance="high" />
     
     <ExtractGraphQLSchemaTask AssemblyPath="$(TargetPath)"
                               OutputDirectory="$(GraphQLSchemaOutputDirectory)"

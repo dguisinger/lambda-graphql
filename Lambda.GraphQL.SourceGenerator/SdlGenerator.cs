@@ -182,7 +182,7 @@ public static class SdlGenerator
         sb.AppendLine($"type {typeName} {{");
         foreach (var operation in operations.OrderBy(op => op.FieldName))
         {
-            sb.AppendLine($"  {operation.FieldName}: String"); // Simplified - would need return type info
+            sb.AppendLine($"  {operation.FieldName}: {operation.ReturnType}");
         }
         sb.AppendLine("}");
     }

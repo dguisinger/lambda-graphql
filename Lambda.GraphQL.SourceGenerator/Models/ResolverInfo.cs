@@ -17,6 +17,7 @@ public sealed class ResolverInfo
     public string? RequestMapping { get; set; }
     public string? ResponseMapping { get; set; }
     public List<string> Functions { get; set; } = new();
+    public string ReturnType { get; set; } = "String";
 }
 
 /// <summary>

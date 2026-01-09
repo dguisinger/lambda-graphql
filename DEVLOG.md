@@ -16,3 +16,4 @@
    - Initial project structure created
    - **Challenges** Adapting to the structure of the hackathon vs previous Kiro usage
  - **Evening**
+   - Fixed implementaton gaps in the initial phase

@@ -32,7 +32,8 @@ public class SdlGeneratorTests
             {
                 TypeName = "Query",
                 FieldName = "getProduct",
-                DataSource = "ProductsLambda"
+                DataSource = "ProductsLambda",
+                ReturnType = "Product"
             }
         };
 
@@ -46,6 +47,7 @@ public class SdlGeneratorTests
         sdl.Should().Contain("id: ID!");
         sdl.Should().Contain("name: String!");
         sdl.Should().Contain("type Query {");
+        sdl.Should().Contain("getProduct: Product"); // Should use actual return type
     }
 
     [Fact]

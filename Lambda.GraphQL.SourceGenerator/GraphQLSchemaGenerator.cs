@@ -1,6 +1,7 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
@@ -110,9 +111,35 @@ public partial class GraphQLSchemaGenerator : IIncrementalGenerator
 
             return typeInfo;
         }
-        catch
+        catch (ArgumentException ex)
         {
-            return null; // Handle compilation errors gracefully
+            var diagnostic = Diagnostic.Create(
+                DiagnosticDescriptors.TypeExtractionError,
+                context.Node.GetLocation(),
+                context.Node.ToString(),
+                ex.Message);
+            // Note: We can't report diagnostics here as we don't have access to the context
+            // This will be handled in the main generation method
+            return null;
+        }
+        catch (InvalidOperationException ex)
+        {
+            var diagnostic = Diagnostic.Create(
+                DiagnosticDescriptors.TypeExtractionError,
+                context.Node.GetLocation(),
+                context.Node.ToString(),
+                ex.Message);
+            return null;
+        }
+        catch (System.Exception ex)
+        {
+            // For unexpected exceptions, still return null but log the error type
+            var diagnostic = Diagnostic.Create(
+                DiagnosticDescriptors.TypeExtractionError,
+                context.Node.GetLocation(),
+                context.Node.ToString(),
+                $"Unexpected error: {ex.GetType().Name} - {ex.Message}");
+            return null;
         }
     }
 
@@ -258,7 +285,8 @@ public partial class GraphQLSchemaGenerator : IIncrementalGenerator
                 LambdaFunctionLogicalId = $"{methodSymbol.Name}Function",
                 Runtime = "APPSYNC_JS",
                 RequestMapping = GetAttributePropertyValue(resolverAttr, "RequestMapping"),
-                ResponseMapping = GetAttributePropertyValue(resolverAttr, "ResponseMapping")
+                ResponseMapping = GetAttributePropertyValue(resolverAttr, "ResponseMapping"),
+                ReturnType = ReturnTypeExtractor.GetFormattedReturnType(methodSymbol)
             };
 
             // Check if it's a pipeline resolver
@@ -272,9 +300,32 @@ public partial class GraphQLSchemaGenerator : IIncrementalGenerator
 
             return resolverInfo;
         }
-        catch
+        catch (ArgumentException ex)
         {
-            return null; // Handle compilation errors gracefully
+            var diagnostic = Diagnostic.Create(
+                DiagnosticDescriptors.OperationExtractionError,
+                context.Node.GetLocation(),
+                context.Node.ToString(),
+                ex.Message);
+            return null;
+        }
+        catch (InvalidOperationException ex)
+        {
+            var diagnostic = Diagnostic.Create(
+                DiagnosticDescriptors.OperationExtractionError,
+                context.Node.GetLocation(),
+                context.Node.ToString(),
+                ex.Message);
+            return null;
+        }
+        catch (System.Exception ex)
+        {
+            var diagnostic = Diagnostic.Create(
+                DiagnosticDescriptors.OperationExtractionError,
+                context.Node.GetLocation(),
+                context.Node.ToString(),
+                $"Unexpected error: {ex.GetType().Name} - {ex.Message}");
+            return null;
         }
     }
     
@@ -345,13 +396,7 @@ namespace Lambda.GraphQL.Generated
         {
             // Add diagnostic for debugging
             var diagnostic = Diagnostic.Create(
-                new DiagnosticDescriptor(
-                    "LGQL001",
-                    "GraphQL Schema Generation Error",
-                    "Error generating GraphQL schema: {0}",
-                    "Lambda.GraphQL",
-                    DiagnosticSeverity.Warning,
-                    true),
+                DiagnosticDescriptors.SchemaGenerationError,
                 Location.None,
                 ex.Message);
             
