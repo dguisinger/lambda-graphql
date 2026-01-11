@@ -22,6 +22,19 @@ public class AttributeTests
     }
 
     [Fact]
+    public void GraphQLTypeAttribute_ShouldSupportInputKind()
+    {
+        // Arrange & Act
+        var attribute = new GraphQLTypeAttribute("CreateProductInput")
+        {
+            Kind = GraphQLTypeKind.Input
+        };
+
+        // Assert
+        attribute.Kind.Should().Be(GraphQLTypeKind.Input);
+    }
+
+    [Fact]
     public void GraphQLFieldAttribute_ShouldSetNameAndDescription()
     {
         // Arrange & Act
@@ -47,6 +60,20 @@ public class AttributeTests
         // Assert
         attribute.Name.Should().Be("getProduct");
         attribute.Description.Should().Be("Get a product by ID");
+    }
+
+    [Fact]
+    public void GraphQLMutationAttribute_ShouldSetNameAndDescription()
+    {
+        // Arrange & Act
+        var attribute = new GraphQLMutationAttribute("createProduct")
+        {
+            Description = "Create a new product"
+        };
+
+        // Assert
+        attribute.Name.Should().Be("createProduct");
+        attribute.Description.Should().Be("Create a new product");
     }
 
     [Fact]
@@ -115,5 +142,52 @@ public class AttributeTests
         attribute.Description.Should().Be("Active status");
         attribute.Deprecated.Should().BeTrue();
         attribute.DeprecationReason.Should().Be("Use ENABLED instead");
+    }
+
+    [Fact]
+    public void GraphQLResolverAttribute_ShouldSetUnitResolverProperties()
+    {
+        // Arrange & Act
+        var attribute = new GraphQLResolverAttribute
+        {
+            DataSource = "ProductsLambda",
+            Kind = ResolverKind.Unit,
+            RequestMapping = "request.vtl",
+            ResponseMapping = "response.vtl"
+        };
+
+        // Assert
+        attribute.DataSource.Should().Be("ProductsLambda");
+        attribute.Kind.Should().Be(ResolverKind.Unit);
+        attribute.RequestMapping.Should().Be("request.vtl");
+        attribute.ResponseMapping.Should().Be("response.vtl");
+    }
+
+    [Fact]
+    public void GraphQLResolverAttribute_ShouldSetPipelineResolverProperties()
+    {
+        // Arrange & Act
+        var attribute = new GraphQLResolverAttribute
+        {
+            Kind = ResolverKind.Pipeline,
+            Functions = new[] { "ValidateInput", "ProcessOrder", "SendNotification" }
+        };
+
+        // Assert
+        attribute.Kind.Should().Be(ResolverKind.Pipeline);
+        attribute.Functions.Should().HaveCount(3);
+        attribute.Functions.Should().Contain("ValidateInput");
+        attribute.Functions.Should().Contain("ProcessOrder");
+        attribute.Functions.Should().Contain("SendNotification");
+    }
+
+    [Fact]
+    public void GraphQLResolverAttribute_ShouldDefaultToUnitKind()
+    {
+        // Arrange & Act
+        var attribute = new GraphQLResolverAttribute();
+
+        // Assert
+        attribute.Kind.Should().Be(ResolverKind.Unit);
     }
 }

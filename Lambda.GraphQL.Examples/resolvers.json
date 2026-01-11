@@ -1,0 +1,36 @@
+{
+  "$schema": "https://lambda-graphql.dev/schemas/resolvers.json",
+  "version": "1.0.0",
+  "generatedAt": "2026-01-09T05:13:09Z",
+  "resolvers": [
+    {
+      "typeName": "Query",
+      "fieldName": "getProduct",
+      "kind": "UNIT",
+      "dataSource": "ProductsLambda",
+      "lambdaFunctionName": "GetProduct",
+      "lambdaFunctionLogicalId": "GetProductFunction",
+      "runtime": "APPSYNC_JS"
+    },
+    {
+      "typeName": "Mutation",
+      "fieldName": "createProduct",
+      "kind": "UNIT",
+      "dataSource": "ProductsLambda",
+      "lambdaFunctionName": "CreateProduct",
+      "lambdaFunctionLogicalId": "CreateProductFunction",
+      "runtime": "APPSYNC_JS"
+    }
+  ],
+  "dataSources": [
+    {
+      "name": "ProductsLambda",
+      "type": "AWS_LAMBDA",
+      "serviceRoleArn": "${LambdaDataSourceRole.Arn}",
+      "lambdaConfig": {
+        "functionArn": "${GetProductFunction.Arn}"
+      }
+    }
+  ],
+  "functions": []
+}

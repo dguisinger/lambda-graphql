@@ -1,0 +1,44 @@
+"""
+Generated GraphQL schema from Lambda functions
+"""
+schema {
+  query: Query
+  mutation: Mutation
+}
+
+input CreateProductInput {
+  Name: String!
+  Price: Float!
+}
+
+"""
+A product in the catalog
+"""
+type Product {
+  """
+  Product display name
+  """
+  displayName: String!
+  """
+  Unique product identifier
+  """
+  Id: String!
+  """
+  Product price in USD
+  """
+  Price: Float!
+}
+
+type Query {
+  """
+  Get a product by ID
+  """
+  getProduct(id: String!): Product!
+}
+
+type Mutation {
+  """
+  Create a new product
+  """
+  createProduct(input: CreateProductInput!): Product!
+}

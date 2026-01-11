@@ -39,7 +39,14 @@ dotnet pack
 
 # Clean build artifacts
 dotnet clean
+
+# Shutdown build server (REQUIRED after source generator changes)
+dotnet build-server shutdown
 ```
+
+## Important: Source Generator Development
+
+When making changes to `Lambda.GraphQL.SourceGenerator`, you MUST run `dotnet build-server shutdown` before rebuilding. The Roslyn compiler server caches loaded analyzers/generators, so changes won't take effect until the server is restarted.
 
 ## Build Outputs
 - `schema.graphql` - Generated GraphQL SDL

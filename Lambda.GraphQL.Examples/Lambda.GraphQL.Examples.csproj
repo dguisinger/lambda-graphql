@@ -3,6 +3,8 @@
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
     <OutputType>Library</OutputType>
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)\GeneratedFiles</CompilerGeneratedFilesOutputPath>
   </PropertyGroup>
 
   <ItemGroup>
@@ -16,5 +18,9 @@
     <ProjectReference Include="../Lambda.GraphQL.SourceGenerator/Lambda.GraphQL.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     <ProjectReference Include="../Lambda.GraphQL.Build/Lambda.GraphQL.Build.csproj" />
   </ItemGroup>
+
+  <!-- Import Lambda.GraphQL build targets for development (normally auto-imported via NuGet) -->
+  <Import Project="../Lambda.GraphQL/build/Lambda.GraphQL.props" />
+  <Import Project="../Lambda.GraphQL/build/Lambda.GraphQL.targets" />
 
 </Project>

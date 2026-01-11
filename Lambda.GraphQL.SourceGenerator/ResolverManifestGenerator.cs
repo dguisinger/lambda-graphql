@@ -1,6 +1,7 @@
-using System.Text.Json;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using Lambda.GraphQL.SourceGenerator.Models;
 
 namespace Lambda.GraphQL.SourceGenerator;
@@ -18,44 +19,92 @@ public static class ResolverManifestGenerator
         var resolverList = resolvers.ToList();
         var dataSources = ExtractDataSources(resolverList);
 
-        var manifest = new
+        var sb = new StringBuilder();
+        sb.AppendLine("{");
+        sb.AppendLine($"  \"$schema\": \"https://lambda-graphql.dev/schemas/resolvers.json\",");
+        sb.AppendLine($"  \"version\": \"1.0.0\",");
+        sb.AppendLine($"  \"generatedAt\": \"{DateTime.UtcNow:yyyy-MM-ddTHH:mm:ssZ}\",");
+        
+        // Resolvers array
+        sb.AppendLine("  \"resolvers\": [");
+        for (int i = 0; i < resolverList.Count; i++)
         {
-            schema = "https://lambda-graphql.dev/schemas/resolvers.json",
-            version = "1.0.0",
-            generatedAt = System.DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"),
-            resolvers = resolverList.Select(r => new
+            var r = resolverList[i];
+            sb.AppendLine("    {");
+            sb.AppendLine($"      \"typeName\": \"{EscapeJson(r.TypeName)}\",");
+            sb.AppendLine($"      \"fieldName\": \"{EscapeJson(r.FieldName)}\",");
+            sb.AppendLine($"      \"kind\": \"{r.Kind.ToString().ToUpperInvariant()}\",");
+            
+            if (r.Kind == ResolverKind.Pipeline)
             {
-                typeName = r.TypeName,
-                fieldName = r.FieldName,
-                kind = r.Kind.ToString().ToUpperInvariant(),
-                dataSource = r.DataSource,
-                lambdaFunctionName = r.LambdaFunctionName,
-                lambdaFunctionLogicalId = r.LambdaFunctionLogicalId,
-                runtime = r.Runtime,
-                requestMapping = r.RequestMapping,
-                responseMapping = r.ResponseMapping,
-                functions = r.Functions.Count > 0 ? r.Functions : null
-            }).Where(r => r.dataSource != null),
-            dataSources = dataSources.Select(ds => new
-            {
-                name = ds.Name,
-                type = "AWS_LAMBDA",
-                serviceRoleArn = "${LambdaDataSourceRole.Arn}",
-                lambdaConfig = new
+                // Pipeline resolver - include functions array
+                sb.AppendLine("      \"functions\": [");
+                for (int j = 0; j < r.Functions.Count; j++)
                 {
-                    functionArn = $"${{{ds.LogicalId}.Arn}}"
+                    var comma = j < r.Functions.Count - 1 ? "," : "";
+                    sb.AppendLine($"        \"{EscapeJson(r.Functions[j])}\"{comma}");
                 }
-            }),
-            functions = new object[0] // Empty for now, would be populated for pipeline resolvers
-        };
-
-        var options = new JsonSerializerOptions
+                sb.AppendLine("      ]");
+            }
+            else
+            {
+                // Unit resolver - include data source and lambda info
+                sb.AppendLine($"      \"dataSource\": \"{EscapeJson(r.DataSource ?? "")}\",");
+                sb.AppendLine($"      \"lambdaFunctionName\": \"{EscapeJson(r.LambdaFunctionName ?? "")}\",");
+                sb.AppendLine($"      \"lambdaFunctionLogicalId\": \"{EscapeJson(r.LambdaFunctionLogicalId ?? "")}\",");
+                sb.AppendLine($"      \"runtime\": \"{EscapeJson(r.Runtime)}\"");
+            }
+            
+            sb.Append("    }");
+            if (i < resolverList.Count - 1) sb.Append(",");
+            sb.AppendLine();
+        }
+        sb.AppendLine("  ],");
+        
+        // DataSources array
+        sb.AppendLine("  \"dataSources\": [");
+        for (int i = 0; i < dataSources.Count; i++)
         {
-            WriteIndented = true,
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-        };
+            var ds = dataSources[i];
+            sb.AppendLine("    {");
+            sb.AppendLine($"      \"name\": \"{EscapeJson(ds.Name)}\",");
+            sb.AppendLine($"      \"type\": \"AWS_LAMBDA\",");
+            sb.AppendLine($"      \"serviceRoleArn\": \"${{LambdaDataSourceRole.Arn}}\",");
+            sb.AppendLine("      \"lambdaConfig\": {");
+            sb.AppendLine($"        \"functionArn\": \"${{{EscapeJson(ds.LogicalId)}.Arn}}\"");
+            sb.AppendLine("      }");
+            sb.Append("    }");
+            if (i < dataSources.Count - 1) sb.Append(",");
+            sb.AppendLine();
+        }
+        sb.AppendLine("  ],");
+        
+        sb.AppendLine("  \"functions\": []");
+        sb.AppendLine("}");
 
-        return JsonSerializer.Serialize(manifest, options);
+        return sb.ToString();
+    }
+
+    private static string EscapeJson(string value)
+    {
+        if (string.IsNullOrEmpty(value)) return "";
+        
+        var sb = new StringBuilder(value.Length + 10);
+        foreach (char c in value)
+        {
+            switch (c)
+            {
+                case '\\': sb.Append("\\\\"); break;
+                case '"': sb.Append("\\\""); break;
+                case '\n': sb.Append("\\n"); break;
+                case '\r': sb.Append("\\r"); break;
+                case '\t': sb.Append("\\t"); break;
+                case '\b': sb.Append("\\b"); break;
+                case '\f': sb.Append("\\f"); break;
+                default: sb.Append(c); break;
+            }
+        }
+        return sb.ToString();
     }
 
     private static List<DataSourceInfo> ExtractDataSources(List<ResolverInfo> resolvers)
@@ -66,14 +115,14 @@ public static class ResolverManifestGenerator
         foreach (var resolver in resolvers)
         {
             if (!string.IsNullOrEmpty(resolver.DataSource) && 
-                !seenDataSources.Contains(resolver.DataSource))
+                !seenDataSources.Contains(resolver.DataSource!))
             {
                 dataSources.Add(new DataSourceInfo
                 {
-                    Name = resolver.DataSource,
+                    Name = resolver.DataSource!,
                     LogicalId = resolver.LambdaFunctionLogicalId ?? $"{resolver.LambdaFunctionName}Function"
                 });
-                seenDataSources.Add(resolver.DataSource);
+                seenDataSources.Add(resolver.DataSource!);
             }
         }
 

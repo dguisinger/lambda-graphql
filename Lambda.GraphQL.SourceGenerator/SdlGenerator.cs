@@ -182,7 +182,48 @@ public static class SdlGenerator
         sb.AppendLine($"type {typeName} {{");
         foreach (var operation in operations.OrderBy(op => op.FieldName))
         {
-            sb.AppendLine($"  {operation.FieldName}: {operation.ReturnType}");
+            // Add description if present
+            if (!string.IsNullOrEmpty(operation.Description))
+            {
+                sb.AppendLine($"  \"\"\"\n  {operation.Description}\n  \"\"\"");
+            }
+
+            // Build field with arguments
+            var fieldDef = new StringBuilder();
+            fieldDef.Append($"  {operation.FieldName}");
+
+            if (operation.Arguments.Count > 0)
+            {
+                if (operation.Arguments.Count == 1)
+                {
+                    // Single argument on same line
+                    var arg = operation.Arguments[0];
+                    var argType = arg.IsNullable ? arg.Type : $"{arg.Type}!";
+                    fieldDef.Append($"({arg.Name}: {argType})");
+                }
+                else
+                {
+                    // Multiple arguments on separate lines
+                    fieldDef.AppendLine("(");
+                    for (int i = 0; i < operation.Arguments.Count; i++)
+                    {
+                        var arg = operation.Arguments[i];
+                        var argType = arg.IsNullable ? arg.Type : $"{arg.Type}!";
+                        
+                        if (!string.IsNullOrEmpty(arg.Description))
+                        {
+                            fieldDef.AppendLine($"    \"\"\"\n    {arg.Description}\n    \"\"\"");
+                        }
+                        
+                        var comma = i < operation.Arguments.Count - 1 ? "," : "";
+                        fieldDef.AppendLine($"    {arg.Name}: {argType}{comma}");
+                    }
+                    fieldDef.Append("  )");
+                }
+            }
+
+            fieldDef.AppendLine($": {operation.ReturnType}");
+            sb.Append(fieldDef);
         }
         sb.AppendLine("}");
     }

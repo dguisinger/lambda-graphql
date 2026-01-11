@@ -77,4 +77,135 @@ public class SdlGeneratorTests
         sdl.Should().Contain("ACTIVE");
         sdl.Should().Contain("INACTIVE @deprecated(reason: \"Use DISABLED\")");
     }
+
+    [Fact]
+    public void GenerateSchema_ShouldRenderInputTypes()
+    {
+        // Arrange
+        var types = new List<Lambda.GraphQL.SourceGenerator.Models.TypeInfo>
+        {
+            new Lambda.GraphQL.SourceGenerator.Models.TypeInfo
+            {
+                Name = "CreateProductInput",
+                Kind = Lambda.GraphQL.SourceGenerator.Models.TypeKind.Input,
+                Fields = new List<FieldInfo>
+                {
+                    new FieldInfo { Name = "name", Type = "String", IsNullable = false },
+                    new FieldInfo { Name = "price", Type = "Float", IsNullable = false }
+                }
+            }
+        };
+
+        // Act
+        var sdl = SdlGenerator.GenerateSchema(types, new List<ResolverInfo>());
+
+        // Assert
+        sdl.Should().Contain("input CreateProductInput {");
+        sdl.Should().Contain("name: String!");
+        sdl.Should().Contain("price: Float!");
+        sdl.Should().NotContain("type CreateProductInput"); // Should NOT be 'type'
+    }
+
+    [Fact]
+    public void GenerateSchema_ShouldRenderOperationArguments()
+    {
+        // Arrange
+        var operations = new List<ResolverInfo>
+        {
+            new ResolverInfo
+            {
+                TypeName = "Query",
+                FieldName = "getProduct",
+                ReturnType = "Product",
+                Arguments = new List<ArgumentInfo>
+                {
+                    new ArgumentInfo { Name = "id", Type = "ID", IsNullable = false }
+                }
+            }
+        };
+
+        // Act
+        var sdl = SdlGenerator.GenerateSchema(new List<Lambda.GraphQL.SourceGenerator.Models.TypeInfo>(), operations);
+
+        // Assert
+        sdl.Should().Contain("getProduct(id: ID!): Product");
+    }
+
+    [Fact]
+    public void GenerateSchema_ShouldRenderMultipleArguments()
+    {
+        // Arrange
+        var operations = new List<ResolverInfo>
+        {
+            new ResolverInfo
+            {
+                TypeName = "Query",
+                FieldName = "listProducts",
+                ReturnType = "[Product]!",
+                Arguments = new List<ArgumentInfo>
+                {
+                    new ArgumentInfo { Name = "first", Type = "Int", IsNullable = true },
+                    new ArgumentInfo { Name = "after", Type = "String", IsNullable = true }
+                }
+            }
+        };
+
+        // Act
+        var sdl = SdlGenerator.GenerateSchema(new List<Lambda.GraphQL.SourceGenerator.Models.TypeInfo>(), operations);
+
+        // Assert
+        sdl.Should().Contain("listProducts(");
+        sdl.Should().Contain("first: Int");
+        sdl.Should().Contain("after: String");
+        sdl.Should().Contain("): [Product]!");
+    }
+
+    [Fact]
+    public void GenerateSchema_ShouldRenderOperationDescriptions()
+    {
+        // Arrange
+        var operations = new List<ResolverInfo>
+        {
+            new ResolverInfo
+            {
+                TypeName = "Query",
+                FieldName = "getProduct",
+                Description = "Get a product by ID",
+                ReturnType = "Product"
+            }
+        };
+
+        // Act
+        var sdl = SdlGenerator.GenerateSchema(new List<Lambda.GraphQL.SourceGenerator.Models.TypeInfo>(), operations);
+
+        // Assert
+        sdl.Should().Contain("\"\"\"");
+        sdl.Should().Contain("Get a product by ID");
+    }
+
+    [Fact]
+    public void GenerateSchema_ShouldRenderInterfaceTypes()
+    {
+        // Arrange
+        var types = new List<Lambda.GraphQL.SourceGenerator.Models.TypeInfo>
+        {
+            new Lambda.GraphQL.SourceGenerator.Models.TypeInfo
+            {
+                Name = "Node",
+                Kind = Lambda.GraphQL.SourceGenerator.Models.TypeKind.Interface,
+                IsInterface = true,
+                Fields = new List<FieldInfo>
+                {
+                    new FieldInfo { Name = "id", Type = "ID", IsNullable = false }
+                }
+            }
+        };
+
+        // Act
+        var sdl = SdlGenerator.GenerateSchema(types, new List<ResolverInfo>());
+
+        // Assert
+        sdl.Should().Contain("interface Node {");
+        sdl.Should().Contain("id: ID!");
+    }
 }

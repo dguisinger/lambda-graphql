@@ -17,23 +17,26 @@ public partial class GraphQLSchemaGenerator : IIncrementalGenerator
 {
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        // Find classes with GraphQL type attributes - collect diagnostics
+        // 1. Find classes/enums with GraphQL attributes
         var typeDeclarations = context.SyntaxProvider
             .CreateSyntaxProvider(
                 predicate: (s, _) => IsGraphQLType(s),
-                transform: (ctx, _) => ExtractTypeInfoWithDiagnostics(ctx));
+                transform: (ctx, _) => ExtractTypeInfoWithDiagnostics(ctx))
+            .Where(t => t.result != null);
 
-        // Find Lambda functions with GraphQL operation attributes - collect diagnostics
+        // 2. Find Lambda functions with GraphQL operation attributes
         var operationDeclarations = context.SyntaxProvider
             .CreateSyntaxProvider(
                 predicate: (s, _) => IsGraphQLOperation(s),
-                transform: (ctx, _) => ExtractOperationInfoWithDiagnostics(ctx));
+                transform: (ctx, _) => ExtractOperationInfoWithDiagnostics(ctx))
+            .Where(o => o.result != null);
 
-        // Combine and generate schema
+        // 3. Combine types, operations, and compilation
         var combined = typeDeclarations.Collect()
             .Combine(operationDeclarations.Collect())
             .Combine(context.CompilationProvider);
 
+        // 4. Generate schema
         context.RegisterSourceOutput(combined, GenerateSchema);
     }
 
@@ -42,11 +45,12 @@ public partial class GraphQLSchemaGenerator : IIncrementalGenerator
         if (node is not ClassDeclarationSyntax and not EnumDeclarationSyntax)
             return false;
 
-        var hasGraphQLTypeAttribute = node.DescendantNodes()
+        // Check if the class/enum has any GraphQL attributes
+        var hasGraphQLAttribute = node.DescendantNodes()
             .OfType<AttributeSyntax>()
             .Any(attr => attr.Name.ToString().Contains("GraphQLType"));
 
-        return hasGraphQLTypeAttribute;
+        return hasGraphQLAttribute;
     }
     private static (object? result, System.Collections.Generic.IEnumerable<Diagnostic> diagnostics) ExtractTypeInfoWithDiagnostics(GeneratorSyntaxContext context)
     {
@@ -94,11 +98,24 @@ public partial class GraphQLSchemaGenerator : IIncrementalGenerator
             else
             {
                 // Check Kind property from attribute
-                var kindValue = GetAttributePropertyValue(graphqlTypeAttr, "Kind");
-                if (kindValue == "Input")
-                    typeInfo.Kind = Models.TypeKind.Input;
+                var kindArg = graphqlTypeAttr.NamedArguments
+                    .FirstOrDefault(arg => arg.Key == "Kind");
+                
+                if (!kindArg.Value.IsNull && kindArg.Value.Value is int kindInt)
+                {
+                    // GraphQLTypeKind enum: 0=Object, 1=Input, 2=Interface, 3=Enum
+                    typeInfo.Kind = kindInt switch
+                    {
+                        1 => Models.TypeKind.Input,
+                        2 => Models.TypeKind.Interface,
+                        3 => Models.TypeKind.Enum,
+                        _ => Models.TypeKind.Object
+                    };
+                }
                 else
+                {
                     typeInfo.Kind = Models.TypeKind.Object;
+                }
             }
 
             // Extract fields for non-enum types
@@ -276,6 +293,7 @@ public partial class GraphQLSchemaGenerator : IIncrementalGenerator
                 .FirstOrDefault(attr => attr.AttributeClass?.Name == "LambdaFunctionAttribute");
 
             var operationName = GetAttributeStringValue(graphqlOpAttr, 0) ?? methodSymbol.Name;
+            var operationDescription = GetAttributePropertyValue(graphqlOpAttr, "Description");
             var typeName = graphqlOpAttr.AttributeClass?.Name switch
             {
                 "GraphQLQueryAttribute" => "Query",
@@ -288,6 +306,7 @@ public partial class GraphQLSchemaGenerator : IIncrementalGenerator
             {
                 TypeName = typeName,
                 FieldName = operationName,
+                Description = operationDescription,
                 Kind = ResolverKind.Unit,
                 DataSource = GetAttributePropertyValue(resolverAttr, "DataSource"),
                 LambdaFunctionName = methodSymbol.Name,
@@ -298,13 +317,51 @@ public partial class GraphQLSchemaGenerator : IIncrementalGenerator
                 ReturnType = ReturnTypeExtractor.GetFormattedReturnType(methodSymbol)
             };
 
+            // Extract method parameters as GraphQL arguments
+            foreach (var parameter in methodSymbol.Parameters)
+            {
+                // Skip special parameters (ILambdaContext, etc.)
+                if (parameter.Type.ToDisplayString().Contains("ILambdaContext"))
+                    continue;
+
+                var argAttr = parameter.GetAttributes()
+                    .FirstOrDefault(attr => attr.AttributeClass?.Name == "GraphQLArgumentAttribute");
+
+                var argInfo = new Models.ArgumentInfo
+                {
+                    Name = GetAttributeStringValue(argAttr, 0) ?? parameter.Name,
+                    Description = GetAttributePropertyValue(argAttr, "Description"),
+                    Type = TypeMapper.MapType(parameter.Type),
+                    IsNullable = !TypeMapper.IsNonNull(parameter.Type)
+                };
+
+                resolverInfo.Arguments.Add(argInfo);
+            }
+
             // Check if it's a pipeline resolver
-            var functionsValue = GetAttributePropertyValue(resolverAttr, "Functions");
-            if (!string.IsNullOrEmpty(functionsValue))
+            var kindValue = GetAttributePropertyValue(resolverAttr, "Kind");
+            if (kindValue == "Pipeline")
             {
                 resolverInfo.Kind = ResolverKind.Pipeline;
-                // Parse functions array - simplified for now
-                resolverInfo.Functions.Add(functionsValue);
+            }
+
+            // Extract pipeline functions array
+            if (resolverAttr != null)
+            {
+                var functionsArg = resolverAttr.NamedArguments
+                    .FirstOrDefault(arg => arg.Key == "Functions");
+                
+                if (!functionsArg.Value.IsNull && functionsArg.Value.Kind == TypedConstantKind.Array)
+                {
+                    resolverInfo.Kind = ResolverKind.Pipeline;
+                    foreach (var funcValue in functionsArg.Value.Values)
+                    {
+                        if (funcValue.Value is string funcName)
+                        {
+                            resolverInfo.Functions.Add(funcName);
+                        }
+                    }
+                }
             }
 
             return (resolverInfo, System.Linq.Enumerable.Empty<Diagnostic>());
@@ -349,8 +406,22 @@ public partial class GraphQLSchemaGenerator : IIncrementalGenerator
     { 
         try
         {
+            if (combined.Left.Left == null || combined.Left.Right == null || combined.Right == null)
+                return;
+
             var (typeAndOperationData, compilation) = combined;
             var (typeData, operationData) = typeAndOperationData;
+
+            // Always generate a test file to verify the source generator is working
+            var testSource = @"// Generated by Lambda.GraphQL Source Generator
+namespace Lambda.GraphQL.Generated
+{
+    public static class GeneratedTest
+    {
+        public static string Message => ""Source generator is working!"";
+    }
+}";
+            context.AddSource("GeneratedTest.g.cs", testSource);
 
             // Collect and report all diagnostics
             foreach (var (_, diagnostics) in typeData)
@@ -373,8 +444,25 @@ public partial class GraphQLSchemaGenerator : IIncrementalGenerator
             var types = typeData.Where(t => t.result != null).Select(t => t.result).OfType<Models.TypeInfo>().ToList();
             var operations = operationData.Where(o => o.result != null).Select(o => o.result).OfType<ResolverInfo>().ToList();
 
+            // Generate debug info about what was found
+            var debugInfo = $"// Found {types.Count} types and {operations.Count} operations";
+
             if (!types.Any() && !operations.Any())
+            {
+                // Generate a placeholder schema with debug info
+                var placeholderSource = $@"// Generated by Lambda.GraphQL Source Generator
+{debugInfo}
+// No GraphQL types or operations were detected.
+// Make sure your types have [GraphQLType] attribute and operations have [GraphQLQuery]/[GraphQLMutation] attributes.
+
+using System.Reflection;
+
+[assembly: AssemblyMetadata(""GraphQL.Schema"", ""# No schema generated - no types found"")]
+[assembly: AssemblyMetadata(""GraphQL.ResolverManifest"", ""{{\""resolvers\"": []}}"")]
+";
+                context.AddSource("GraphQLAssemblyMetadata.g.cs", placeholderSource);
                 return;
+            }
 
             // Find schema attribute for metadata
             string? schemaName = null;
@@ -438,6 +526,17 @@ namespace Lambda.GraphQL.Generated
 
     private static string EscapeString(string input)
     {
-        return input.Replace("\"", "\"\"").Replace("\r\n", "\\r\\n").Replace("\n", "\\n");
+        var sb = new StringBuilder(input.Length + 20);
+        foreach (char c in input)
+        {
+            switch (c)
+            {
+                case '"': sb.Append("\"\""); break;
+                case '\r': sb.Append("\\r"); break;
+                case '\n': sb.Append("\\n"); break;
+                default: sb.Append(c); break;
+            }
+        }
+        return sb.ToString();
     }
 }

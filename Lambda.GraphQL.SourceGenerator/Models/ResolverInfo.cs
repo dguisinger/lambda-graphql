@@ -9,6 +9,7 @@ public sealed class ResolverInfo
 {
     public string TypeName { get; set; } = string.Empty;
     public string FieldName { get; set; } = string.Empty;
+    public string? Description { get; set; }
     public ResolverKind Kind { get; set; }
     public string? DataSource { get; set; }
     public string? LambdaFunctionName { get; set; }
@@ -18,6 +19,19 @@ public sealed class ResolverInfo
     public string? ResponseMapping { get; set; }
     public List<string> Functions { get; set; } = new();
     public string ReturnType { get; set; } = "String";
+    public List<ArgumentInfo> Arguments { get; set; } = new();
+}
+
+/// <summary>
+/// Represents a GraphQL field argument.
+/// </summary>
+public sealed class ArgumentInfo
+{
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public string Type { get; set; } = string.Empty;
+    public bool IsNullable { get; set; }
+    public string? DefaultValue { get; set; }
 }
 
 /// <summary>

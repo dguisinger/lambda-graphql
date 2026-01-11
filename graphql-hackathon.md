@@ -501,9 +501,9 @@ foreach (var resolver in resolverManifest.Resolvers)
 - [x] Project structure setup
 - [x] Core attributes (GraphQLType, GraphQLField, GraphQLQuery, GraphQLMutation)
 - [x] Source generator for type extraction
-- [ ] SDL generation for basic types (Object, Input, Enum)
-- [ ] MSBuild task for schema extraction
-- [ ] Basic tests
+- [x] SDL generation for basic types (Object, Input, Enum)
+- [x] MSBuild task for schema extraction
+- [x] Basic tests
 
 **Deliverables:**
 - `Lambda.GraphQL` package

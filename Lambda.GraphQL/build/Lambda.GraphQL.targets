@@ -2,7 +2,7 @@
   <!-- This file defines the MSBuild targets for Lambda.GraphQL -->
   
   <PropertyGroup>
-    <GraphQLSchemaOutputDirectory Condition="'$(GraphQLSchemaOutputDirectory)' == ''">$(OutputPath)</GraphQLSchemaOutputDirectory>
+    <GraphQLSchemaOutputDirectory Condition="'$(GraphQLSchemaOutputDirectory)' == ''">$(MSBuildProjectDirectory)</GraphQLSchemaOutputDirectory>
     <GraphQLSchemaFileName Condition="'$(GraphQLSchemaFileName)' == ''">schema.graphql</GraphQLSchemaFileName>
     <GraphQLResolverFileName Condition="'$(GraphQLResolverFileName)' == ''">resolvers.json</GraphQLResolverFileName>
     <EnableLambdaGraphQLSchemaGeneration Condition="'$(EnableLambdaGraphQLSchemaGeneration)' == ''">true</EnableLambdaGraphQLSchemaGeneration>
@@ -12,19 +12,32 @@
              AssemblyFile="$(MSBuildThisFileDirectory)../tools/Lambda.GraphQL.Build.dll" 
              Condition="Exists('$(MSBuildThisFileDirectory)../tools/Lambda.GraphQL.Build.dll')" />
 
-  <!-- Fallback: try to find the build task in the NuGet package structure -->
+  <!-- Development scenario: project reference -->
   <UsingTask TaskName="Lambda.GraphQL.Build.ExtractGraphQLSchemaTask" 
              AssemblyFile="$(MSBuildThisFileDirectory)../../Lambda.GraphQL.Build/bin/$(Configuration)/net6.0/Lambda.GraphQL.Build.dll" 
              Condition="!Exists('$(MSBuildThisFileDirectory)../tools/Lambda.GraphQL.Build.dll') AND Exists('$(MSBuildThisFileDirectory)../../Lambda.GraphQL.Build/bin/$(Configuration)/net6.0/Lambda.GraphQL.Build.dll')" />
+
+  <!-- Additional fallback for different project structures -->
+  <UsingTask TaskName="Lambda.GraphQL.Build.ExtractGraphQLSchemaTask" 
+             AssemblyFile="$(OutputPath)Lambda.GraphQL.Build.dll" 
+             Condition="!Exists('$(MSBuildThisFileDirectory)../tools/Lambda.GraphQL.Build.dll') AND !Exists('$(MSBuildThisFileDirectory)../../Lambda.GraphQL.Build/bin/$(Configuration)/net6.0/Lambda.GraphQL.Build.dll') AND Exists('$(OutputPath)Lambda.GraphQL.Build.dll')" />
 
   <Target Name="ExtractGraphQLSchema" 
           AfterTargets="Build" 
           Condition="'$(EnableLambdaGraphQLSchemaGeneration)' == 'true' AND '$(TargetPath)' != ''">
     
-    <Message Text="Lambda.GraphQL: Extracting schema from $(TargetPath)" Importance="high" />
+    <!-- Resolve output directory to full path -->
+    <PropertyGroup>
+      <_GraphQLOutputDir Condition="'$(GraphQLSchemaOutputDirectory)' != ''">$([System.IO.Path]::GetFullPath('$(GraphQLSchemaOutputDirectory)', '$(MSBuildProjectDirectory)'))</_GraphQLOutputDir>
+      <_GraphQLOutputDir Condition="'$(_GraphQLOutputDir)' == ''">$([System.IO.Path]::GetDirectoryName('$(TargetPath)'))</_GraphQLOutputDir>
+    </PropertyGroup>
+    
+    <Message Text="Lambda.GraphQL: Extracting schema from $(TargetPath) to $(_GraphQLOutputDir)" Importance="high" />
     
     <ExtractGraphQLSchemaTask AssemblyPath="$(TargetPath)"
-                              OutputDirectory="$(GraphQLSchemaOutputDirectory)"
+                              OutputDirectory="$(_GraphQLOutputDir)"
+                              IntermediateOutputPath="$(IntermediateOutputPath)"
+                              CompilerGeneratedFilesOutputPath="$(CompilerGeneratedFilesOutputPath)"
                               SchemaFileName="$(GraphQLSchemaFileName)"
                               ResolverFileName="$(GraphQLResolverFileName)" />
     

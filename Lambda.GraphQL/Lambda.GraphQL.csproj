@@ -17,7 +17,7 @@
 
   <!-- Bundle source generator and build task as analyzers -->
   <ItemGroup>
-    <None Include="../Lambda.GraphQL.SourceGenerator/bin/$(Configuration)/net6.0/Lambda.GraphQL.SourceGenerator.dll" Pack="true" PackagePath="analyzers/dotnet/cs/Lambda.GraphQL.SourceGenerator.dll" />
+    <None Include="../Lambda.GraphQL.SourceGenerator/bin/$(Configuration)/netstandard2.0/Lambda.GraphQL.SourceGenerator.dll" Pack="true" PackagePath="analyzers/dotnet/cs/Lambda.GraphQL.SourceGenerator.dll" />
     <None Include="../Lambda.GraphQL.Build/bin/$(Configuration)/net6.0/Lambda.GraphQL.Build.dll" Pack="true" PackagePath="tools/Lambda.GraphQL.Build.dll" />
   </ItemGroup>
 
