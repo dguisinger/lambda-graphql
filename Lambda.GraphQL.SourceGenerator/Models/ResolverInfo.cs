@@ -20,6 +20,7 @@ public sealed class ResolverInfo
     public List<string> Functions { get; set; } = new();
     public string ReturnType { get; set; } = "String";
     public List<ArgumentInfo> Arguments { get; set; } = new();
+    public List<AppliedDirectiveInfo> Directives { get; set; } = new();
 }
 
 /// <summary>

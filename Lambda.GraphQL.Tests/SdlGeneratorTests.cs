@@ -208,4 +208,137 @@ public class SdlGeneratorTests
         sdl.Should().Contain("interface Node {");
         sdl.Should().Contain("id: ID!");
     }
+
+    [Fact]
+    public void GenerateSchema_ShouldRenderAuthDirectivesOnTypes()
+    {
+        // Arrange
+        var types = new List<Lambda.GraphQL.SourceGenerator.Models.TypeInfo>
+        {
+            new Lambda.GraphQL.SourceGenerator.Models.TypeInfo
+            {
+                Name = "User",
+                Kind = Lambda.GraphQL.SourceGenerator.Models.TypeKind.Object,
+                Fields = new List<FieldInfo>
+                {
+                    new FieldInfo { Name = "id", Type = "ID", IsNullable = false }
+                },
+                Directives = new List<AppliedDirectiveInfo>
+                {
+                    new AppliedDirectiveInfo { Name = "aws_cognito_user_pools" }
+                }
+            }
+        };
+
+        // Act
+        var sdl = SdlGenerator.GenerateSchema(types, new List<ResolverInfo>());
+
+        // Assert
+        sdl.Should().Contain("type User @aws_cognito_user_pools {");
+    }
+
+    [Fact]
+    public void GenerateSchema_ShouldRenderAuthDirectivesOnOperations()
+    {
+        // Arrange
+        var operations = new List<ResolverInfo>
+        {
+            new ResolverInfo
+            {
+                TypeName = "Query",
+                FieldName = "getUser",
+                ReturnType = "User!",
+                Directives = new List<AppliedDirectiveInfo>
+                {
+                    new AppliedDirectiveInfo { Name = "aws_iam" }
+                }
+            }
+        };
+
+        // Act
+        var sdl = SdlGenerator.GenerateSchema(new List<Lambda.GraphQL.SourceGenerator.Models.TypeInfo>(), operations);
+
+        // Assert
+        sdl.Should().Contain("getUser: User! @aws_iam");
+    }
+
+    [Fact]
+    public void GenerateSchema_ShouldRenderAuthDirectivesWithCognitoGroups()
+    {
+        // Arrange
+        var operations = new List<ResolverInfo>
+        {
+            new ResolverInfo
+            {
+                TypeName = "Mutation",
+                FieldName = "createUser",
+                ReturnType = "User!",
+                Directives = new List<AppliedDirectiveInfo>
+                {
+                    new AppliedDirectiveInfo 
+                    { 
+                        Name = "aws_cognito_user_pools",
+                        Arguments = new Dictionary<string, string> { { "cognito_groups", "admin" } }
+                    }
+                }
+            }
+        };
+
+        // Act
+        var sdl = SdlGenerator.GenerateSchema(new List<Lambda.GraphQL.SourceGenerator.Models.TypeInfo>(), operations);
+
+        // Assert
+        sdl.Should().Contain("createUser: User! @aws_cognito_user_pools(cognito_groups: [\"admin\"])");
+    }
+
+    [Fact]
+    public void GenerateSchema_ShouldRenderAuthDirectivesOnEnums()
+    {
+        // Arrange
+        var types = new List<Lambda.GraphQL.SourceGenerator.Models.TypeInfo>
+        {
+            new Lambda.GraphQL.SourceGenerator.Models.TypeInfo
+            {
+                Name = "OrderStatus",
+                Kind = Lambda.GraphQL.SourceGenerator.Models.TypeKind.Enum,
+                IsEnum = true,
+                EnumValues = new List<EnumValueInfo>
+                {
+                    new EnumValueInfo { Name = "PENDING" },
+                    new EnumValueInfo { Name = "COMPLETED" }
+                },
+                Directives = new List<AppliedDirectiveInfo>
+                {
+                    new AppliedDirectiveInfo { Name = "aws_api_key" }
+                }
+            }
+        };
+
+        // Act
+        var sdl = SdlGenerator.GenerateSchema(types, new List<ResolverInfo>());
+
+        // Assert
+        sdl.Should().Contain("enum OrderStatus @aws_api_key {");
+    }
+
+    [Fact]
+    public void GenerateSchema_ShouldRenderUnionTypes()
+    {
+        // Arrange
+        var types = new List<Lambda.GraphQL.SourceGenerator.Models.TypeInfo>
+        {
+            new Lambda.GraphQL.SourceGenerator.Models.TypeInfo
+            {
+                Name = "SearchResult",
+                Kind = Lambda.GraphQL.SourceGenerator.Models.TypeKind.Union,
+                UnionMembers = new List<string> { "Product", "User", "Order" }
+            }
+        };
+
+        // Act
+        var sdl = SdlGenerator.GenerateSchema(types, new List<ResolverInfo>());
+
+        // Assert
+        sdl.Should().Contain("union SearchResult = Product | User | Order");
+    }
 }

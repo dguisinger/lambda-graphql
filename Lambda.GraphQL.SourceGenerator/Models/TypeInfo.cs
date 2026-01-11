@@ -16,6 +16,7 @@ public sealed class TypeInfo
     public List<EnumValueInfo> EnumValues { get; set; } = new();
     public List<string> UnionMembers { get; set; } = new();
     public List<string> InterfaceImplementations { get; set; } = new();
+    public List<AppliedDirectiveInfo> Directives { get; set; } = new();
 }
 
 /// <summary>
@@ -40,6 +41,16 @@ public sealed class FieldInfo
     public bool IsNullable { get; set; }
     public bool IsDeprecated { get; set; }
     public string? DeprecationReason { get; set; }
+    public List<AppliedDirectiveInfo> Directives { get; set; } = new();
+}
+
+/// <summary>
+/// Represents a GraphQL directive applied to a type, field, or operation.
+/// </summary>
+public sealed class AppliedDirectiveInfo
+{
+    public string Name { get; set; } = string.Empty;
+    public Dictionary<string, string> Arguments { get; set; } = new();
 }
 
 /// <summary>

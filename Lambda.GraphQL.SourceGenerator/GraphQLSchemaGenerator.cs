@@ -129,6 +129,9 @@ public partial class GraphQLSchemaGenerator : IIncrementalGenerator
                 }
             }
 
+            // Extract auth directives
+            ExtractAuthDirectives(typeSymbol.GetAttributes(), typeInfo.Directives);
+
             // Extract fields for non-enum types
             if (!typeInfo.IsEnum)
             {
@@ -195,6 +198,47 @@ public partial class GraphQLSchemaGenerator : IIncrementalGenerator
         var namedArg = attribute.NamedArguments.FirstOrDefault(arg => arg.Key == propertyName);
         if (namedArg.Value.Value is bool boolValue) return boolValue;
         return false;
+    }
+
+    /// <summary>
+    /// Formats an explicit return type, handling list wrapping based on the actual method return type.
+    /// </summary>
+    private static string FormatExplicitReturnType(string explicitType, IMethodSymbol methodSymbol)
+    {
+        // Check if the method returns a collection type
+        var returnType = methodSymbol.ReturnType;
+        
+        // Unwrap Task<T>/ValueTask<T>
+        if (returnType is INamedTypeSymbol namedReturnType && namedReturnType.IsGenericType)
+        {
+            var constructedFrom = namedReturnType.ConstructedFrom.ToDisplayString();
+            if (constructedFrom.StartsWith("System.Threading.Tasks.Task<") ||
+                constructedFrom.StartsWith("System.Threading.Tasks.ValueTask<"))
+            {
+                if (namedReturnType.TypeArguments.Length > 0)
+                {
+                    returnType = namedReturnType.TypeArguments[0];
+                }
+            }
+        }
+
+        // Check if it's a list/array type
+        bool isList = false;
+        if (returnType is INamedTypeSymbol listType && listType.IsGenericType)
+        {
+            var constructedFrom = listType.ConstructedFrom.ToDisplayString();
+            isList = constructedFrom.StartsWith("System.Collections.Generic.List<") ||
+                     constructedFrom.StartsWith("System.Collections.Generic.IList<") ||
+                     constructedFrom.StartsWith("System.Collections.Generic.IEnumerable<");
+        }
+        else if (returnType is IArrayTypeSymbol)
+        {
+            isList = true;
+        }
+
+        // Format the type with list wrapper if needed
+        var formattedType = isList ? $"[{explicitType}]!" : $"{explicitType}!";
+        return formattedType;
     }
 
     private static void ExtractEnumValues(INamedTypeSymbol enumSymbol, Models.TypeInfo typeInfo)
@@ -275,8 +319,53 @@ public partial class GraphQLSchemaGenerator : IIncrementalGenerator
                     fieldInfo.IsNullable = false;
                 }
 
+                // Extract auth directives for the field
+                ExtractAuthDirectives(property.GetAttributes(), fieldInfo.Directives);
+
                 typeInfo.Fields.Add(fieldInfo);
             }
+        }
+    }
+
+    private static void ExtractAuthDirectives(System.Collections.Immutable.ImmutableArray<AttributeData> attributes, System.Collections.Generic.List<Models.AppliedDirectiveInfo> directives)
+    {
+        foreach (var attr in attributes)
+        {
+            if (attr.AttributeClass?.Name != "GraphQLAuthDirectiveAttribute")
+                continue;
+
+            // Get AuthMode from constructor argument
+            if (attr.ConstructorArguments.Length == 0)
+                continue;
+
+            var authModeValue = attr.ConstructorArguments[0].Value;
+            if (authModeValue == null)
+                continue;
+
+            // AuthMode enum: 0=ApiKey, 1=UserPools, 2=IAM, 3=OpenIDConnect, 4=Lambda
+            var directiveName = (int)authModeValue switch
+            {
+                0 => "aws_api_key",
+                1 => "aws_cognito_user_pools",
+                2 => "aws_iam",
+                3 => "aws_oidc",
+                4 => "aws_lambda",
+                _ => null
+            };
+
+            if (directiveName == null)
+                continue;
+
+            var directive = new Models.AppliedDirectiveInfo { Name = directiveName };
+
+            // Extract CognitoGroups if present
+            var cognitoGroups = GetAttributePropertyValue(attr, "CognitoGroups");
+            if (!string.IsNullOrEmpty(cognitoGroups))
+            {
+                directive.Arguments["cognito_groups"] = cognitoGroups!;
+            }
+
+            directives.Add(directive);
         }
     }
     private static bool IsGraphQLOperation(SyntaxNode node)
@@ -329,6 +418,7 @@ public partial class GraphQLSchemaGenerator : IIncrementalGenerator
 
             var operationName = GetAttributeStringValue(graphqlOpAttr, 0) ?? methodSymbol.Name;
             var operationDescription = GetAttributePropertyValue(graphqlOpAttr, "Description");
+            var explicitReturnType = GetAttributePropertyValue(graphqlOpAttr, "ReturnType");
             var typeName = graphqlOpAttr.AttributeClass?.Name switch
             {
                 "GraphQLQueryAttribute" => "Query",
@@ -349,8 +439,13 @@ public partial class GraphQLSchemaGenerator : IIncrementalGenerator
                 Runtime = "APPSYNC_JS",
                 RequestMapping = GetAttributePropertyValue(resolverAttr, "RequestMapping"),
                 ResponseMapping = GetAttributePropertyValue(resolverAttr, "ResponseMapping"),
-                ReturnType = ReturnTypeExtractor.GetFormattedReturnType(methodSymbol)
+                ReturnType = !string.IsNullOrEmpty(explicitReturnType) 
+                    ? FormatExplicitReturnType(explicitReturnType!, methodSymbol)
+                    : ReturnTypeExtractor.GetFormattedReturnType(methodSymbol)
             };
+
+            // Extract auth directives for the operation
+            ExtractAuthDirectives(methodSymbol.GetAttributes(), resolverInfo.Directives);
 
             // Extract method parameters as GraphQL arguments
             foreach (var parameter in methodSymbol.Parameters)
@@ -534,15 +629,6 @@ using System.Reflection;
 
 [assembly: System.Reflection.AssemblyMetadata(""GraphQL.Schema"", @""{EscapeString(sdl)}"")]
 [assembly: System.Reflection.AssemblyMetadata(""GraphQL.ResolverManifest"", @""{EscapeString(resolverManifest)}"")]
-
-namespace Lambda.GraphQL.Generated
-{{
-    internal static class GeneratedSchema
-    {{
-        public const string SDL = @""{EscapeString(sdl)}"";
-        public const string ResolverManifest = @""{EscapeString(resolverManifest)}"";
-    }}
-}}
 ";
 
             context.AddSource("GraphQLSchema.g.cs", sdlSource);

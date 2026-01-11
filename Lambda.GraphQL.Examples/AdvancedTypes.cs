@@ -102,7 +102,7 @@ public enum OrderStatus
 public class AdvancedFunctions
 {
     [LambdaFunction]
-    [GraphQLQuery("search", Description = "Search for products, users, or orders")]
+    [GraphQLQuery("search", Description = "Search for products, users, or orders", ReturnType = "SearchResult")]
     [GraphQLResolver(DataSource = "SearchLambda")]
     public async Task<List<object>> Search(
         [GraphQLArgument(Description = "Search term")] string term,

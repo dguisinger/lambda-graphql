@@ -97,7 +97,8 @@ public static class SdlGenerator
 
     private static void GenerateObjectType(StringBuilder sb, Models.TypeInfo type)
     {
-        sb.AppendLine($"type {type.Name} {{");
+        var directives = FormatDirectives(type.Directives);
+        sb.AppendLine($"type {type.Name}{directives} {{");
         foreach (var field in type.Fields.OrderBy(f => f.Name))
         {
             GenerateField(sb, field, "  ");
@@ -107,7 +108,8 @@ public static class SdlGenerator
 
     private static void GenerateInputType(StringBuilder sb, Models.TypeInfo type)
     {
-        sb.AppendLine($"input {type.Name} {{");
+        var directives = FormatDirectives(type.Directives);
+        sb.AppendLine($"input {type.Name}{directives} {{");
         foreach (var field in type.Fields.OrderBy(f => f.Name))
         {
             GenerateInputField(sb, field, "  ");
@@ -117,7 +119,8 @@ public static class SdlGenerator
 
     private static void GenerateInterfaceType(StringBuilder sb, Models.TypeInfo type)
     {
-        sb.AppendLine($"interface {type.Name} {{");
+        var directives = FormatDirectives(type.Directives);
+        sb.AppendLine($"interface {type.Name}{directives} {{");
         foreach (var field in type.Fields.OrderBy(f => f.Name))
         {
             GenerateField(sb, field, "  ");
@@ -127,7 +130,8 @@ public static class SdlGenerator
 
     private static void GenerateEnumType(StringBuilder sb, Models.TypeInfo type)
     {
-        sb.AppendLine($"enum {type.Name} {{");
+        var directives = FormatDirectives(type.Directives);
+        sb.AppendLine($"enum {type.Name}{directives} {{");
         foreach (var enumValue in type.EnumValues.OrderBy(e => e.Name))
         {
             if (!string.IsNullOrEmpty(enumValue.Description))
@@ -170,6 +174,13 @@ public static class SdlGenerator
 
         var fieldType = field.IsNullable ? field.Type : $"{field.Type}!";
         var line = $"{indent}{field.Name}: {fieldType}";
+
+        // Add field directives
+        var directives = FormatDirectives(field.Directives);
+        if (!string.IsNullOrEmpty(directives))
+        {
+            line += directives;
+        }
 
         if (field.IsDeprecated)
         {
@@ -238,9 +249,50 @@ public static class SdlGenerator
                 }
             }
 
-            fieldDef.AppendLine($": {operation.ReturnType}");
+            fieldDef.Append($": {operation.ReturnType}");
+
+            // Add operation directives
+            var directives = FormatDirectives(operation.Directives);
+            if (!string.IsNullOrEmpty(directives))
+            {
+                fieldDef.Append(directives);
+            }
+
+            fieldDef.AppendLine();
             sb.Append(fieldDef);
         }
         sb.AppendLine("}");
+    }
+
+    /// <summary>
+    /// Formats a list of directives into SDL syntax.
+    /// </summary>
+    private static string FormatDirectives(List<AppliedDirectiveInfo> directives)
+    {
+        if (directives == null || directives.Count == 0)
+            return string.Empty;
+
+        var sb = new StringBuilder();
+        foreach (var directive in directives)
+        {
+            sb.Append($" @{directive.Name}");
+            
+            if (directive.Arguments.Count > 0)
+            {
+                var args = directive.Arguments.Select(kvp => 
+                {
+                    // Handle array values for cognito_groups
+                    if (kvp.Key == "cognito_groups")
+                    {
+                        // Split by comma and format as array
+                        var groups = kvp.Value.Split(',').Select(g => $"\"{g.Trim()}\"");
+                        return $"{kvp.Key}: [{string.Join(", ", groups)}]";
+                    }
+                    return $"{kvp.Key}: \"{kvp.Value}\"";
+                });
+                sb.Append($"({string.Join(", ", args)})");
+            }
+        }
+        return sb.ToString();
     }
 }

@@ -13,20 +13,65 @@ Before you begin, make sure you have:
 
 ## Installation
 
-### Step 1: Create a New Project
+> **Note**: This is a hackathon submission. For evaluation, use project references as shown below. Package will be published to NuGet after evaluation.
+
+### Step 1: Clone and Build (For Hackathon Evaluation)
+
+```bash
+# Clone the repository
+git clone https://github.com/dguisinger/lambda-graphql
+cd lambda-graphql
+
+# Build the solution
+dotnet build
+
+# Run tests to verify
+dotnet test
+```
+
+### Step 2: Create Your Project
 
 ```bash
 # Create a new Lambda project
 dotnet new lambda.EmptyFunction -n MyGraphQLApi
 cd MyGraphQLApi
 
-# Or add to existing project
-cd YourExistingProject
+# Add project reference (instead of NuGet package)
+dotnet add reference ../lambda-graphql/Lambda.GraphQL/Lambda.GraphQL.csproj
 ```
 
-### Step 2: Install Lambda.GraphQL
+### Step 3: Install Dependencies
 
 ```bash
+dotnet add package Amazon.Lambda.Annotations
+```
+
+> **Note**: For hackathon evaluation, use project references instead of NuGet packages. See installation instructions above.
+
+## What Gets Generated
+
+When you build your project, Lambda.GraphQL generates several files:
+
+### 1. GraphQL Schema (`schema.graphql`)
+The complete GraphQL SDL schema based on your C# types and Lambda functions.
+
+### 2. Resolver Manifest (`resolvers.json`) 
+AppSync resolver configuration for CDK deployment.
+
+### 3. Generated C# Source Files
+Source generator creates intermediate C# files (visible in `obj/GeneratedFiles/`) that embed the schema metadata in your assembly.
+
+You can inspect these files to understand how the generation works:
+
+```bash
+# View generated C# files
+find YourProject/obj -name "*.cs" -path "*GraphQLSchemaGenerator*"
+```
+
+### After NuGet Publication
+
+```bash
+# Future installation (post-hackathon)
 dotnet add package Lambda.GraphQL
 ```
 

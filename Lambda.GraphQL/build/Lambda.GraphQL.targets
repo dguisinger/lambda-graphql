@@ -29,7 +29,7 @@
     <!-- Resolve output directory to full path -->
     <PropertyGroup>
       <_GraphQLOutputDir Condition="'$(GraphQLSchemaOutputDirectory)' != ''">$([System.IO.Path]::GetFullPath('$(GraphQLSchemaOutputDirectory)', '$(MSBuildProjectDirectory)'))</_GraphQLOutputDir>
-      <_GraphQLOutputDir Condition="'$(_GraphQLOutputDir)' == ''">$([System.IO.Path]::GetDirectoryName('$(TargetPath)'))</_GraphQLOutputDir>
+      <_GraphQLOutputDir Condition="'$(_GraphQLOutputDir)' == ''">$(MSBuildProjectDirectory)</_GraphQLOutputDir>
     </PropertyGroup>
     
     <Message Text="Lambda.GraphQL: Extracting schema from $(TargetPath) to $(_GraphQLOutputDir)" Importance="high" />

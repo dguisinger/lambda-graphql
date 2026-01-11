@@ -15,13 +15,48 @@ A .NET library that generates GraphQL schemas from C# Lambda functions for AWS A
 - **📦 Zero Dependencies** - Pure compile-time source generation with no runtime dependencies
 - **🔄 AOT Compatible** - Works seamlessly with Native AOT compilation
 
-## 🚀 Quick Start
+## 🚀 Quick Start (Hackathon Evaluation)
 
-### Installation
+### Prerequisites
+- .NET 6.0+ SDK
+- Git
 
+### Setup for Evaluation
 ```bash
-dotnet add package Lambda.GraphQL
+# Clone the repository
+git clone https://github.com/dguisinger/lambda-graphql
+cd lambda-graphql
+
+# Build the solution
+dotnet build
+
+# Run tests to verify functionality
+dotnet test
+
+# See the generated schema and resolvers
+cat Lambda.GraphQL.Examples/schema.graphql
+cat Lambda.GraphQL.Examples/resolvers.json
+
+# See the generated C# source files (optional)
+find Lambda.GraphQL.Examples/obj -name "*.cs" -path "*GraphQLSchemaGenerator*"
 ```
+
+### Try It Yourself
+```bash
+# Create a new test project
+dotnet new console -n MyGraphQLTest
+cd MyGraphQLTest
+
+# Add project reference (instead of NuGet package)
+dotnet add reference ../Lambda.GraphQL/Lambda.GraphQL.csproj
+dotnet add package Amazon.Lambda.Annotations
+
+# Copy example code from Lambda.GraphQL.Examples
+# Build and see your schema generated!
+dotnet build
+```
+
+> **Note**: This is a hackathon submission - package will be published to NuGet after evaluation.
 
 ### Basic Usage
 

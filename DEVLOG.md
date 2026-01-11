@@ -36,3 +36,4 @@
      - **Decision** Automatic interpretation of UInt64 to AWSTimestamp didn't make sense, transitioned to marker attribute
    - Planned & Implemented documentation. - 30m
      - Created comprehensive documentation and readme based on codebase and graphql-hackathon.md file.
+   - Evaluated instructions and project condition for Hackathon, removed output schema files from Git so reviewers can start from a fresh state - 10m

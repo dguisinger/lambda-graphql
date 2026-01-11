@@ -15,4 +15,10 @@ public sealed class GraphQLSubscriptionAttribute : Attribute
 
     public string? Name { get; }
     public string? Description { get; set; }
+    
+    /// <summary>
+    /// Explicit GraphQL return type override. Use for union types or when the C# return type
+    /// doesn't map directly to the desired GraphQL type.
+    /// </summary>
+    public string? ReturnType { get; set; }
 }
