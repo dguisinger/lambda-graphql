@@ -14,6 +14,8 @@ public sealed class TypeInfo
     public bool IsInterface { get; set; }
     public bool IsEnum { get; set; }
     public List<EnumValueInfo> EnumValues { get; set; } = new();
+    public List<string> UnionMembers { get; set; } = new();
+    public List<string> InterfaceImplementations { get; set; } = new();
 }
 
 /// <summary>
@@ -48,5 +50,6 @@ public enum TypeKind
     Object,
     Input,
     Interface,
-    Enum
+    Enum,
+    Union
 }

@@ -4,11 +4,75 @@ Generated GraphQL schema from Lambda functions
 schema {
   query: Query
   mutation: Mutation
+  subscription: Subscription
 }
 
 input CreateProductInput {
   Name: String!
   Price: Float!
+}
+
+input CreateUserInput {
+  """
+  User's birth date
+  """
+  BirthDate: AWSDate
+  """
+  User's email address
+  """
+  Email: String!
+  """
+  User metadata as JSON
+  """
+  Metadata: AWSJSON
+}
+
+"""
+An order in the system
+"""
+type Order {
+  """
+  Order creation timestamp
+  """
+  CreatedAt: AWSDateTime!
+  """
+  Unique order identifier
+  """
+  Id: ID!
+  """
+  Order status
+  """
+  Status: OrderStatus!
+  """
+  Order total amount
+  """
+  Total: Float!
+}
+
+"""
+Order status enumeration
+"""
+enum OrderStatus {
+  """
+  Order was cancelled
+  """
+  Cancelled
+  """
+  Order has been delivered
+  """
+  Delivered
+  """
+  Order is pending
+  """
+  Pending
+  """
+  Order is being processed
+  """
+  Processing
+  """
+  Order has been shipped
+  """
+  Shipped
 }
 
 """
@@ -29,11 +93,72 @@ type Product {
   Price: Float!
 }
 
+union SearchResult = Product | User | Order
+
+"""
+A user in the system
+"""
+type User {
+  """
+  User's birth date
+  """
+  BirthDate: AWSDate
+  """
+  User creation timestamp
+  """
+  CreatedAt: AWSDateTime!
+  """
+  Account creation timestamp (Unix seconds)
+  """
+  CreatedAtTimestamp: AWSTimestamp!
+  """
+  User's email address
+  """
+  Email: AWSEmail!
+  """
+  Unique user identifier
+  """
+  Id: ID!
+  """
+  User's IP address
+  """
+  LastLoginIp: IPAddress
+  """
+  User metadata as JSON
+  """
+  Metadata: AWSJSON
+  """
+  Preferred notification time
+  """
+  NotificationTime: AWSTime
+  """
+  User's profile URL
+  """
+  ProfileUrl: Uri
+}
+
 type Query {
   """
   Get a product by ID
   """
   getProduct(id: String!): Product!
+  """
+  Get a user by ID
+  """
+  getUser(id: ID!): User!
+  """
+  Search for products, users, or orders
+  """
+  search(
+    """
+    Search term
+    """
+    term: String!,
+    """
+    Maximum results to return
+    """
+    limit: Int!
+  ): [Object]!
 }
 
 type Mutation {
@@ -41,4 +166,15 @@ type Mutation {
   Create a new product
   """
   createProduct(input: CreateProductInput!): Product!
+  """
+  Create a new user
+  """
+  createUser(input: CreateUserInput!): User!
+}
+
+type Subscription {
+  """
+  Subscribe to order status changes
+  """
+  orderStatusChanged(orderId: ID!): Order!
 }

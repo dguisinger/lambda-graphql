@@ -89,6 +89,9 @@ public static class SdlGenerator
             case Models.TypeKind.Enum:
                 GenerateEnumType(sb, type);
                 break;
+            case Models.TypeKind.Union:
+                GenerateUnionType(sb, type);
+                break;
         }
     }
 
@@ -143,6 +146,19 @@ public static class SdlGenerator
             sb.AppendLine(line);
         }
         sb.AppendLine("}");
+    }
+
+    private static void GenerateUnionType(StringBuilder sb, Models.TypeInfo type)
+    {
+        if (type.UnionMembers.Count > 0)
+        {
+            var members = string.Join(" | ", type.UnionMembers);
+            sb.AppendLine($"union {type.Name} = {members}");
+        }
+        else
+        {
+            sb.AppendLine($"union {type.Name}");
+        }
     }
 
     private static void GenerateField(StringBuilder sb, FieldInfo field, string indent)

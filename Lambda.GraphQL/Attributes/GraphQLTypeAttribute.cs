@@ -26,5 +26,6 @@ public enum GraphQLTypeKind
     Object,
     Input,
     Interface,
-    Enum
+    Enum,
+    Union
 }

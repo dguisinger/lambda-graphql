@@ -48,7 +48,8 @@ public partial class GraphQLSchemaGenerator : IIncrementalGenerator
         // Check if the class/enum has any GraphQL attributes
         var hasGraphQLAttribute = node.DescendantNodes()
             .OfType<AttributeSyntax>()
-            .Any(attr => attr.Name.ToString().Contains("GraphQLType"));
+            .Any(attr => attr.Name.ToString().Contains("GraphQLType") || 
+                        attr.Name.ToString().Contains("GraphQLUnion"));
 
         return hasGraphQLAttribute;
     }
@@ -73,20 +74,29 @@ public partial class GraphQLSchemaGenerator : IIncrementalGenerator
 
             var graphqlTypeAttr = typeSymbol.GetAttributes()
                 .FirstOrDefault(attr => attr.AttributeClass?.Name == "GraphQLTypeAttribute");
+            
+            var graphqlUnionAttr = typeSymbol.GetAttributes()
+                .FirstOrDefault(attr => attr.AttributeClass?.Name == "GraphQLUnionAttribute");
 
-            if (graphqlTypeAttr == null)
+            if (graphqlTypeAttr == null && graphqlUnionAttr == null)
                 return (null, System.Linq.Enumerable.Empty<Diagnostic>());
 
             var typeInfo = new Models.TypeInfo
             {
-                Name = GetAttributeStringValue(graphqlTypeAttr, 0) ?? typeSymbol.Name,
-                Description = GetAttributePropertyValue(graphqlTypeAttr, "Description"),
+                Name = GetAttributeStringValue(graphqlTypeAttr ?? graphqlUnionAttr!, 0) ?? typeSymbol.Name,
+                Description = GetAttributePropertyValue(graphqlTypeAttr ?? graphqlUnionAttr!, "Description"),
                 IsInterface = typeSymbol.TypeKind == Microsoft.CodeAnalysis.TypeKind.Interface,
                 IsEnum = typeSymbol.TypeKind == Microsoft.CodeAnalysis.TypeKind.Enum
             };
 
+            // Handle union types
+            if (graphqlUnionAttr != null)
+            {
+                typeInfo.Kind = Models.TypeKind.Union;
+                ExtractUnionMembers(graphqlUnionAttr, typeInfo);
+            }
             // Set Kind based on type
-            if (typeInfo.IsEnum)
+            else if (typeInfo.IsEnum)
             {
                 typeInfo.Kind = Models.TypeKind.Enum;
                 ExtractEnumValues(typeSymbol, typeInfo);
@@ -98,17 +108,18 @@ public partial class GraphQLSchemaGenerator : IIncrementalGenerator
             else
             {
                 // Check Kind property from attribute
-                var kindArg = graphqlTypeAttr.NamedArguments
+                var kindArg = graphqlTypeAttr?.NamedArguments
                     .FirstOrDefault(arg => arg.Key == "Kind");
                 
-                if (!kindArg.Value.IsNull && kindArg.Value.Value is int kindInt)
+                if (kindArg?.Value.IsNull == false && kindArg.Value.Value.Value is int kindInt)
                 {
-                    // GraphQLTypeKind enum: 0=Object, 1=Input, 2=Interface, 3=Enum
+                    // GraphQLTypeKind enum: 0=Object, 1=Input, 2=Interface, 3=Enum, 4=Union
                     typeInfo.Kind = kindInt switch
                     {
                         1 => Models.TypeKind.Input,
                         2 => Models.TypeKind.Interface,
                         3 => Models.TypeKind.Enum,
+                        4 => Models.TypeKind.Union,
                         _ => Models.TypeKind.Object
                     };
                 }
@@ -208,6 +219,22 @@ public partial class GraphQLSchemaGenerator : IIncrementalGenerator
         }
     }
 
+    private static void ExtractUnionMembers(AttributeData unionAttr, Models.TypeInfo typeInfo)
+    {
+        // Extract member types from the MemberTypes parameter
+        var memberTypesArg = unionAttr.ConstructorArguments.Skip(1).FirstOrDefault();
+        if (memberTypesArg.IsNull || memberTypesArg.Kind != TypedConstantKind.Array)
+            return;
+            
+        foreach (var memberType in memberTypesArg.Values)
+        {
+            if (memberType.Value is string memberTypeName)
+            {
+                typeInfo.UnionMembers.Add(memberTypeName);
+            }
+        }
+    }
+
     private static void ExtractFields(INamedTypeSymbol typeSymbol, Models.TypeInfo typeInfo)
     {
         foreach (var member in typeSymbol.GetMembers())
@@ -231,6 +258,14 @@ public partial class GraphQLSchemaGenerator : IIncrementalGenerator
                     IsDeprecated = GetAttributeBooleanValue(fieldAttr, "Deprecated"),
                     DeprecationReason = GetAttributePropertyValue(fieldAttr, "DeprecationReason")
                 };
+
+                // Check for GraphQLTimestamp override
+                var hasTimestamp = property.GetAttributes()
+                    .Any(attr => attr.AttributeClass?.Name == "GraphQLTimestampAttribute");
+                if (hasTimestamp)
+                {
+                    fieldInfo.Type = "AWSTimestamp";
+                }
 
                 // Check for GraphQLNonNull override
                 var hasNonNull = property.GetAttributes()

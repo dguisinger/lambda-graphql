@@ -71,6 +71,13 @@ public static class TypeMapper
             return $"[{MapType(arrayType.ElementType)}]";
         }
         
+        // Check AWS scalar mappings first
+        var awsScalarType = AwsScalarMapper.GetAwsScalarType(typeName);
+        if (awsScalarType != null)
+        {
+            return awsScalarType;
+        }
+        
         // Check built-in type mappings
         if (TypeMappings.TryGetValue(typeName, out var graphqlType))
         {

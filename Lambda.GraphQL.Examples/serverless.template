@@ -36,6 +36,74 @@
         "PackageType": "Zip",
         "Handler": "Lambda.GraphQL.Examples::Lambda.GraphQL.Examples.ProductFunctions_CreateProduct_Generated::CreateProduct"
       }
+    },
+    "LambdaGraphQLExamplesAdvancedFunctionsSearchGenerated": {
+      "Type": "AWS::Serverless::Function",
+      "Metadata": {
+        "Tool": "Amazon.Lambda.Annotations"
+      },
+      "Properties": {
+        "Runtime": "dotnet6",
+        "CodeUri": ".",
+        "MemorySize": 512,
+        "Timeout": 30,
+        "Policies": [
+          "AWSLambdaBasicExecutionRole"
+        ],
+        "PackageType": "Zip",
+        "Handler": "Lambda.GraphQL.Examples::Lambda.GraphQL.Examples.AdvancedFunctions_Search_Generated::Search"
+      }
+    },
+    "LambdaGraphQLExamplesAdvancedFunctionsGetUserGenerated": {
+      "Type": "AWS::Serverless::Function",
+      "Metadata": {
+        "Tool": "Amazon.Lambda.Annotations"
+      },
+      "Properties": {
+        "Runtime": "dotnet6",
+        "CodeUri": ".",
+        "MemorySize": 512,
+        "Timeout": 30,
+        "Policies": [
+          "AWSLambdaBasicExecutionRole"
+        ],
+        "PackageType": "Zip",
+        "Handler": "Lambda.GraphQL.Examples::Lambda.GraphQL.Examples.AdvancedFunctions_GetUser_Generated::GetUser"
+      }
+    },
+    "LambdaGraphQLExamplesAdvancedFunctionsCreateUserGenerated": {
+      "Type": "AWS::Serverless::Function",
+      "Metadata": {
+        "Tool": "Amazon.Lambda.Annotations"
+      },
+      "Properties": {
+        "Runtime": "dotnet6",
+        "CodeUri": ".",
+        "MemorySize": 512,
+        "Timeout": 30,
+        "Policies": [
+          "AWSLambdaBasicExecutionRole"
+        ],
+        "PackageType": "Zip",
+        "Handler": "Lambda.GraphQL.Examples::Lambda.GraphQL.Examples.AdvancedFunctions_CreateUser_Generated::CreateUser"
+      }
+    },
+    "LambdaGraphQLExamplesAdvancedFunctionsOrderStatusChangedGenerated": {
+      "Type": "AWS::Serverless::Function",
+      "Metadata": {
+        "Tool": "Amazon.Lambda.Annotations"
+      },
+      "Properties": {
+        "Runtime": "dotnet6",
+        "CodeUri": ".",
+        "MemorySize": 512,
+        "Timeout": 30,
+        "Policies": [
+          "AWSLambdaBasicExecutionRole"
+        ],
+        "PackageType": "Zip",
+        "Handler": "Lambda.GraphQL.Examples::Lambda.GraphQL.Examples.AdvancedFunctions_OrderStatusChanged_Generated::OrderStatusChanged"
+      }
     }
   }
 }

@@ -515,11 +515,11 @@ foreach (var resolver in resolverManifest.Resolvers)
 
 **Goal:** Track resolver configurations for CDK deployment
 
-- [ ] GraphQLResolverAttribute implementation
-- [ ] Resolver manifest generation (resolvers.json)
-- [ ] Data source tracking
-- [ ] Lambda function logical ID mapping
-- [ ] Pipeline resolver support
+- [x] GraphQLResolverAttribute implementation
+- [x] Resolver manifest generation (resolvers.json)
+- [x] Data source tracking
+- [x] Lambda function logical ID mapping
+- [x] Pipeline resolver support
 
 **Deliverables:**
 - `resolvers.json` output
@@ -529,13 +529,13 @@ foreach (var resolver in resolverManifest.Resolvers)
 
 **Goal:** Full GraphQL feature support
 
-- [ ] Interface types
-- [ ] Union types
-- [ ] Custom scalars (AWS types)
-- [ ] Directives (built-in and custom)
-- [ ] Subscriptions
-- [ ] Field-level auth directives
-- [ ] Relay connection pattern helpers
+- [x] Interface types
+- [x] Union types
+- [x] Custom scalars (AWS types)
+- [x] Directives (built-in and custom)
+- [x] Subscriptions
+- [x] Field-level auth directives
+- [x] Relay connection pattern helpers
 
 ## Technical Considerations
 
