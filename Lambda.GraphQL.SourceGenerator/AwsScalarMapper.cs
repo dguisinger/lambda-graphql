@@ -30,6 +30,9 @@ public static class AwsScalarMapper
         
         // IP Address types
         { "System.Net.IPAddress", "AWSIPAddress" }
+        
+        // Note: Int64/long types are NOT automatically mapped to AWSTimestamp
+        // Use [GraphQLTimestamp] attribute to explicitly mark timestamp fields
     };
 
     /// <summary>

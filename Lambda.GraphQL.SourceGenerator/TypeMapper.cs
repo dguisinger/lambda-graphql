@@ -36,7 +36,9 @@ public static class TypeMapper
     /// </summary>
     public static string MapType(ITypeSymbol typeSymbol)
     {
-        var typeName = typeSymbol.ToDisplayString();
+        // Use fully qualified name for proper AWS scalar mapping
+        var typeName = typeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
+            .Replace("global::", ""); // Remove global:: prefix
         
         // Handle nullable value types (e.g., int?)
         if (typeSymbol is INamedTypeSymbol namedType && namedType.IsGenericType)

@@ -21,7 +21,7 @@ Welcome to the Lambda.GraphQL documentation! This library enables you to generat
 - **[Performance](performance.md)** - Performance considerations and optimization tips
 - **[Troubleshooting](troubleshooting.md)** - Common issues and solutions
 - **[Contributing](contributing.md)** - Development setup and contribution guidelines
-- **[Migration Guide](migration.md)** - Version migration and breaking changes
+- **[Migration Guide](migration.md)** - Version migration and breaking changes (Coming Soon)
 
 ## 🚀 Quick Start
 

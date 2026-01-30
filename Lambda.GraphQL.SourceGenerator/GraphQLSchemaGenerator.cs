@@ -2,6 +2,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
@@ -81,10 +82,13 @@ public partial class GraphQLSchemaGenerator : IIncrementalGenerator
             if (graphqlTypeAttr == null && graphqlUnionAttr == null)
                 return (null, System.Linq.Enumerable.Empty<Diagnostic>());
 
+            // At least one attribute is non-null at this point
+            var attributeForName = graphqlTypeAttr ?? graphqlUnionAttr!;
+            
             var typeInfo = new Models.TypeInfo
             {
-                Name = GetAttributeStringValue(graphqlTypeAttr ?? graphqlUnionAttr!, 0) ?? typeSymbol.Name,
-                Description = GetAttributePropertyValue(graphqlTypeAttr ?? graphqlUnionAttr!, "Description"),
+                Name = GetAttributeStringValue(attributeForName, 0) ?? typeSymbol.Name,
+                Description = GetAttributePropertyValue(attributeForName, "Description"),
                 IsInterface = typeSymbol.TypeKind == Microsoft.CodeAnalysis.TypeKind.Interface,
                 IsEnum = typeSymbol.TypeKind == Microsoft.CodeAnalysis.TypeKind.Enum
             };
@@ -267,6 +271,8 @@ public partial class GraphQLSchemaGenerator : IIncrementalGenerator
     {
         // Extract member types from the MemberTypes parameter
         var memberTypesArg = unionAttr.ConstructorArguments.Skip(1).FirstOrDefault();
+        
+        // Validate that we have a valid array argument
         if (memberTypesArg.IsNull || memberTypesArg.Kind != TypedConstantKind.Array)
             return;
             
@@ -427,22 +433,59 @@ public partial class GraphQLSchemaGenerator : IIncrementalGenerator
                 _ => "Query"
             };
 
+            var lambdaFunctionName = methodSymbol.Name;
+            var lambdaFunctionLogicalId = $"{methodSymbol.Name}Function";
+            var dataSourceName = GetAttributePropertyValue(resolverAttr, "DataSource");
+            
+            // If no DataSource specified, auto-generate from Lambda function name
+            if (string.IsNullOrEmpty(dataSourceName))
+            {
+                dataSourceName = $"{lambdaFunctionName}DataSource";
+            }
+
             var resolverInfo = new ResolverInfo
             {
                 TypeName = typeName,
                 FieldName = operationName,
                 Description = operationDescription,
                 Kind = ResolverKind.Unit,
-                DataSource = GetAttributePropertyValue(resolverAttr, "DataSource"),
-                LambdaFunctionName = methodSymbol.Name,
-                LambdaFunctionLogicalId = $"{methodSymbol.Name}Function",
-                Runtime = "APPSYNC_JS",
+                DataSource = dataSourceName,
+                LambdaFunctionName = lambdaFunctionName,
+                LambdaFunctionLogicalId = lambdaFunctionLogicalId,
                 RequestMapping = GetAttributePropertyValue(resolverAttr, "RequestMapping"),
                 ResponseMapping = GetAttributePropertyValue(resolverAttr, "ResponseMapping"),
                 ReturnType = !string.IsNullOrEmpty(explicitReturnType) 
                     ? FormatExplicitReturnType(explicitReturnType!, methodSymbol)
                     : ReturnTypeExtractor.GetFormattedReturnType(methodSymbol)
             };
+
+            // Extract Lambda Annotations configuration if present
+            if (lambdaAttr != null)
+            {
+                resolverInfo.ResourceName = GetAttributePropertyValue(lambdaAttr, "ResourceName");
+                
+                var memorySize = GetAttributePropertyValue(lambdaAttr, "MemorySize");
+                if (!string.IsNullOrEmpty(memorySize) && int.TryParse(memorySize, out var memory))
+                {
+                    resolverInfo.MemorySize = memory;
+                }
+                
+                var timeout = GetAttributePropertyValue(lambdaAttr, "Timeout");
+                if (!string.IsNullOrEmpty(timeout) && int.TryParse(timeout, out var timeoutValue))
+                {
+                    resolverInfo.Timeout = timeoutValue;
+                }
+                
+                resolverInfo.Role = GetAttributePropertyValue(lambdaAttr, "Role");
+                
+                // Extract policies array if present
+                var policiesValue = GetAttributePropertyValue(lambdaAttr, "Policies");
+                if (!string.IsNullOrEmpty(policiesValue))
+                {
+                    // Policies is typically a string array in Lambda Annotations
+                    resolverInfo.Policies.Add(policiesValue!);
+                }
+            }
 
             // Extract auth directives for the operation
             ExtractAuthDirectives(methodSymbol.GetAttributes(), resolverInfo.Directives);
@@ -573,6 +616,31 @@ namespace Lambda.GraphQL.Generated
             // Extract types and operations from the collected data
             var types = typeData.Where(t => t.result != null).Select(t => t.result).OfType<Models.TypeInfo>().ToList();
             var operations = operationData.Where(o => o.result != null).Select(o => o.result).OfType<ResolverInfo>().ToList();
+
+            // Validate data source names - each data source must map to exactly one Lambda function
+            var dataSourceToLambda = new Dictionary<string, string>();
+            foreach (var operation in operations)
+            {
+                if (!string.IsNullOrEmpty(operation.DataSource) && !string.IsNullOrEmpty(operation.LambdaFunctionName))
+                {
+                    if (dataSourceToLambda.TryGetValue(operation.DataSource!, out var existingLambda))
+                    {
+                        if (existingLambda != operation.LambdaFunctionName)
+                        {
+                            var diagnostic = Diagnostic.Create(
+                                DiagnosticDescriptors.OperationExtractionError,
+                                Location.None,
+                                operation.FieldName,
+                                $"Data source '{operation.DataSource}' is used by multiple Lambda functions: '{existingLambda}' and '{operation.LambdaFunctionName}'. Each Lambda function must have a unique data source name.");
+                            context.ReportDiagnostic(diagnostic);
+                        }
+                    }
+                    else
+                    {
+                        dataSourceToLambda[operation.DataSource!] = operation.LambdaFunctionName!;
+                    }
+                }
+            }
 
             // Generate debug info about what was found
             var debugInfo = $"// Found {types.Count} types and {operations.Count} operations";

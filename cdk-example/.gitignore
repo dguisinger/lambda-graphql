@@ -1,0 +1,14 @@
+node_modules/
+dist/
+cdk.out/
+*.js
+*.d.ts
+!src/**/*.ts
+.DS_Store
+
+# User-specific stuff:
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/dictionaries
+.idea/vcs.xml
+.idea/jsLibraryMappings.xml

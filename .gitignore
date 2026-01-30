@@ -56,3 +56,7 @@ resolvers.json
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+Lambda.GraphQL.Examples/.idea/.idea.Lambda.GraphQL.dir/.idea/aws.xml
+Lambda.GraphQL.Examples/.idea/.idea.Lambda.GraphQL.dir/.idea/indexLayout.xml
+Lambda.GraphQL.Examples/.idea/.idea.Lambda.GraphQL.dir/.idea/vcs.xml
+Lambda.GraphQL.Examples/.idea/.idea.Lambda.GraphQL.dir/.idea/.name

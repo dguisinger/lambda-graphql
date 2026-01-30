@@ -14,13 +14,19 @@ public sealed class ResolverInfo
     public string? DataSource { get; set; }
     public string? LambdaFunctionName { get; set; }
     public string? LambdaFunctionLogicalId { get; set; }
-    public string Runtime { get; set; } = "APPSYNC_JS";
     public string? RequestMapping { get; set; }
     public string? ResponseMapping { get; set; }
     public List<string> Functions { get; set; } = new();
     public string ReturnType { get; set; } = "String";
     public List<ArgumentInfo> Arguments { get; set; } = new();
     public List<AppliedDirectiveInfo> Directives { get; set; } = new();
+    
+    // Lambda Annotations configuration
+    public string? ResourceName { get; set; }
+    public int? MemorySize { get; set; }
+    public int? Timeout { get; set; }
+    public List<string> Policies { get; set; } = new();
+    public string? Role { get; set; }
 }
 
 /// <summary>

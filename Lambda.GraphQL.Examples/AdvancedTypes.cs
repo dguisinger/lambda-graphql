@@ -1,8 +1,5 @@
 #nullable enable
 using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using Amazon.Lambda.Annotations;
 using Lambda.GraphQL.Attributes;
 
 namespace Lambda.GraphQL.Examples;
@@ -98,66 +95,15 @@ public enum OrderStatus
     Cancelled
 }
 
-// Lambda functions demonstrating advanced features
-public class AdvancedFunctions
+// Input type for search
+[GraphQLType("SearchInput", Kind = GraphQLTypeKind.Input)]
+public class SearchInput
 {
-    [LambdaFunction]
-    [GraphQLQuery("search", Description = "Search for products, users, or orders", ReturnType = "SearchResult")]
-    [GraphQLResolver(DataSource = "SearchLambda")]
-    public async Task<List<object>> Search(
-        [GraphQLArgument(Description = "Search term")] string term,
-        [GraphQLArgument(Description = "Maximum results to return")] int limit)
-    {
-        // Implementation would return mixed types for union resolution
-        await Task.Delay(1); // Placeholder
-        return new List<object>();
-    }
-
-    [LambdaFunction]
-    [GraphQLQuery("getUser", Description = "Get a user by ID")]
-    [GraphQLResolver(DataSource = "UserLambda")]
-    [GraphQLAuthDirective(AuthMode.UserPools)]
-    public async Task<User> GetUser(
-        [GraphQLArgument(Description = "User ID")] Guid id)
-    {
-        // Implementation would fetch user
-        await Task.Delay(1); // Placeholder
-        return new User
-        {
-            Id = id,
-            CreatedAt = DateTime.UtcNow,
-            Email = new System.Net.Mail.MailAddress("user@example.com")
-        };
-    }
-
-    [LambdaFunction]
-    [GraphQLMutation("createUser", Description = "Create a new user")]
-    [GraphQLResolver(DataSource = "UserLambda")]
-    [GraphQLAuthDirective(AuthMode.UserPools, CognitoGroups = "admin")]
-    public async Task<User> CreateUser(
-        [GraphQLArgument(Description = "User creation input")] CreateUserInput input)
-    {
-        // Implementation would create user
-        await Task.Delay(1); // Placeholder
-        return new User
-        {
-            Id = Guid.NewGuid(),
-            CreatedAt = DateTime.UtcNow,
-            Email = new System.Net.Mail.MailAddress(input.Email)
-        };
-    }
-
-    [LambdaFunction]
-    [GraphQLSubscription("orderStatusChanged", Description = "Subscribe to order status changes")]
-    [GraphQLResolver(DataSource = "OrderSubscriptionLambda")]
-    [GraphQLAuthDirective(AuthMode.UserPools)]
-    public async Task<Order> OrderStatusChanged(
-        [GraphQLArgument(Description = "Order ID to watch")] Guid orderId)
-    {
-        // Implementation would set up subscription
-        await Task.Delay(1); // Placeholder
-        return new Order { Id = orderId, CreatedAt = DateTime.UtcNow, Total = 0, Status = OrderStatus.Pending };
-    }
+    [GraphQLField(Description = "Search term")]
+    public string Term { get; set; } = string.Empty;
+    
+    [GraphQLField(Description = "Maximum results to return")]
+    public int Limit { get; set; }
 }
 
 // Input type with AWS scalars

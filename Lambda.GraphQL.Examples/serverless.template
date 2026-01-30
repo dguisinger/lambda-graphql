@@ -1,7 +1,7 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Transform": "AWS::Serverless-2016-10-31",
-  "Description": "This template is partially managed by Amazon.Lambda.Annotations (v1.3.0.0).",
+  "Description": "This template is partially managed by Amazon.Lambda.Annotations (v1.5.0.0).",
   "Resources": {
     "LambdaGraphQLExamplesProductFunctionsGetProductGenerated": {
       "Type": "AWS::Serverless::Function",
@@ -11,13 +11,18 @@
       "Properties": {
         "Runtime": "dotnet6",
         "CodeUri": ".",
-        "MemorySize": 512,
+        "MemorySize": 1024,
         "Timeout": 30,
         "Policies": [
           "AWSLambdaBasicExecutionRole"
         ],
         "PackageType": "Zip",
-        "Handler": "Lambda.GraphQL.Examples::Lambda.GraphQL.Examples.ProductFunctions_GetProduct_Generated::GetProduct"
+        "Handler": "Lambda.GraphQL.Examples",
+        "Environment": {
+          "Variables": {
+            "ANNOTATIONS_HANDLER": "GetProduct"
+          }
+        }
       }
     },
     "LambdaGraphQLExamplesProductFunctionsCreateProductGenerated": {
@@ -29,12 +34,17 @@
         "Runtime": "dotnet6",
         "CodeUri": ".",
         "MemorySize": 512,
-        "Timeout": 30,
+        "Timeout": 15,
         "Policies": [
           "AWSLambdaBasicExecutionRole"
         ],
         "PackageType": "Zip",
-        "Handler": "Lambda.GraphQL.Examples::Lambda.GraphQL.Examples.ProductFunctions_CreateProduct_Generated::CreateProduct"
+        "Handler": "Lambda.GraphQL.Examples",
+        "Environment": {
+          "Variables": {
+            "ANNOTATIONS_HANDLER": "CreateProduct"
+          }
+        }
       }
     },
     "LambdaGraphQLExamplesAdvancedFunctionsSearchGenerated": {
@@ -51,7 +61,12 @@
           "AWSLambdaBasicExecutionRole"
         ],
         "PackageType": "Zip",
-        "Handler": "Lambda.GraphQL.Examples::Lambda.GraphQL.Examples.AdvancedFunctions_Search_Generated::Search"
+        "Handler": "Lambda.GraphQL.Examples",
+        "Environment": {
+          "Variables": {
+            "ANNOTATIONS_HANDLER": "Search"
+          }
+        }
       }
     },
     "LambdaGraphQLExamplesAdvancedFunctionsGetUserGenerated": {
@@ -68,7 +83,12 @@
           "AWSLambdaBasicExecutionRole"
         ],
         "PackageType": "Zip",
-        "Handler": "Lambda.GraphQL.Examples::Lambda.GraphQL.Examples.AdvancedFunctions_GetUser_Generated::GetUser"
+        "Handler": "Lambda.GraphQL.Examples",
+        "Environment": {
+          "Variables": {
+            "ANNOTATIONS_HANDLER": "GetUser"
+          }
+        }
       }
     },
     "LambdaGraphQLExamplesAdvancedFunctionsCreateUserGenerated": {
@@ -85,7 +105,12 @@
           "AWSLambdaBasicExecutionRole"
         ],
         "PackageType": "Zip",
-        "Handler": "Lambda.GraphQL.Examples::Lambda.GraphQL.Examples.AdvancedFunctions_CreateUser_Generated::CreateUser"
+        "Handler": "Lambda.GraphQL.Examples",
+        "Environment": {
+          "Variables": {
+            "ANNOTATIONS_HANDLER": "CreateUser"
+          }
+        }
       }
     },
     "LambdaGraphQLExamplesAdvancedFunctionsOrderStatusChangedGenerated": {
@@ -102,7 +127,12 @@
           "AWSLambdaBasicExecutionRole"
         ],
         "PackageType": "Zip",
-        "Handler": "Lambda.GraphQL.Examples::Lambda.GraphQL.Examples.AdvancedFunctions_OrderStatusChanged_Generated::OrderStatusChanged"
+        "Handler": "Lambda.GraphQL.Examples",
+        "Environment": {
+          "Variables": {
+            "ANNOTATIONS_HANDLER": "OrderStatusChanged"
+          }
+        }
       }
     }
   }

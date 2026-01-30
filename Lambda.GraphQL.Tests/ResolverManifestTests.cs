@@ -25,8 +25,7 @@ public class ResolverManifestTests
                 Kind = ResolverKind.Unit,
                 DataSource = TestDataSource,
                 LambdaFunctionName = TestFunctionName,
-                LambdaFunctionLogicalId = TestFunctionLogicalId,
-                Runtime = "APPSYNC_JS"
+                LambdaFunctionLogicalId = TestFunctionLogicalId
             }
         };
 
@@ -56,8 +55,7 @@ public class ResolverManifestTests
                 Kind = ResolverKind.Unit,
                 DataSource = TestDataSource,
                 LambdaFunctionName = TestFunctionName,
-                LambdaFunctionLogicalId = TestFunctionLogicalId,
-                Runtime = "APPSYNC_JS"
+                LambdaFunctionLogicalId = TestFunctionLogicalId
             }
         };
 

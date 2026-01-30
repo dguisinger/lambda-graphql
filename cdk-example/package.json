@@ -1,0 +1,31 @@
+{
+  "name": "lambda-graphql-cdk-example",
+  "version": "1.0.0",
+  "description": "CDK deployment example for Lambda.GraphQL",
+  "main": "src/app.js",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "cdk": "cdk",
+    "deploy": "npm run build && cdk deploy",
+    "synth": "npm run build && cdk synth",
+    "destroy": "cdk destroy"
+  },
+  "keywords": [
+    "aws-cdk",
+    "appsync",
+    "graphql",
+    "lambda"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "aws-cdk": "^2.115.0",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "aws-cdk-lib": "^2.115.0",
+    "constructs": "^10.3.0"
+  }
+}

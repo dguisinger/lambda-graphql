@@ -51,8 +51,48 @@ public static class ResolverManifestGenerator
                 // Unit resolver - include data source and lambda info
                 sb.AppendLine($"      \"dataSource\": \"{EscapeJson(r.DataSource ?? "")}\",");
                 sb.AppendLine($"      \"lambdaFunctionName\": \"{EscapeJson(r.LambdaFunctionName ?? "")}\",");
-                sb.AppendLine($"      \"lambdaFunctionLogicalId\": \"{EscapeJson(r.LambdaFunctionLogicalId ?? "")}\",");
-                sb.AppendLine($"      \"runtime\": \"{EscapeJson(r.Runtime)}\"");
+                sb.Append($"      \"lambdaFunctionLogicalId\": \"{EscapeJson(r.LambdaFunctionLogicalId ?? "")}\"");
+                
+                // Include Lambda Annotations configuration if present
+                if (!string.IsNullOrEmpty(r.ResourceName))
+                {
+                    sb.AppendLine(",");
+                    sb.Append($"      \"resourceName\": \"{EscapeJson(r.ResourceName!)}\"");
+                }
+                
+                if (r.MemorySize.HasValue)
+                {
+                    sb.AppendLine(",");
+                    sb.Append($"      \"memorySize\": {r.MemorySize.Value}");
+                }
+                
+                if (r.Timeout.HasValue)
+                {
+                    sb.AppendLine(",");
+                    sb.Append($"      \"timeout\": {r.Timeout.Value}");
+                }
+                
+                if (!string.IsNullOrEmpty(r.Role))
+                {
+                    sb.AppendLine(",");
+                    sb.Append($"      \"role\": \"{EscapeJson(r.Role!)}\"");
+                }
+                
+                if (r.Policies.Count > 0)
+                {
+                    sb.AppendLine(",");
+                    sb.AppendLine("      \"policies\": [");
+                    for (int j = 0; j < r.Policies.Count; j++)
+                    {
+                        var comma = j < r.Policies.Count - 1 ? "," : "";
+                        sb.Append($"        \"{EscapeJson(r.Policies[j])}\"{comma}");
+                        if (j < r.Policies.Count - 1) sb.AppendLine();
+                    }
+                    sb.AppendLine();
+                    sb.Append("      ]");
+                }
+                
+                sb.AppendLine();
             }
             
             sb.Append("    }");

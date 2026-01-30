@@ -292,9 +292,9 @@ public class SdlGeneratorTests
     }
 
     [Fact]
-    public void GenerateSchema_ShouldRenderAuthDirectivesOnEnums()
+    public void GenerateSchema_ShouldNotRenderAuthDirectivesOnEnums()
     {
-        // Arrange
+        // Arrange - AppSync does not support auth directives on enums
         var types = new List<Lambda.GraphQL.SourceGenerator.Models.TypeInfo>
         {
             new Lambda.GraphQL.SourceGenerator.Models.TypeInfo
@@ -317,8 +317,9 @@ public class SdlGeneratorTests
         // Act
         var sdl = SdlGenerator.GenerateSchema(types, new List<ResolverInfo>());
 
-        // Assert
-        sdl.Should().Contain("enum OrderStatus @aws_api_key {");
+        // Assert - directive should be omitted
+        sdl.Should().Contain("enum OrderStatus {");
+        sdl.Should().NotContain("@aws_api_key");
     }
 
     [Fact]

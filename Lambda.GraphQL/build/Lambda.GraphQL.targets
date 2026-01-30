@@ -12,15 +12,25 @@
              AssemblyFile="$(MSBuildThisFileDirectory)../tools/Lambda.GraphQL.Build.dll" 
              Condition="Exists('$(MSBuildThisFileDirectory)../tools/Lambda.GraphQL.Build.dll')" />
 
-  <!-- Development scenario: project reference -->
+  <!-- Development scenario: project reference - try current configuration -->
   <UsingTask TaskName="Lambda.GraphQL.Build.ExtractGraphQLSchemaTask" 
              AssemblyFile="$(MSBuildThisFileDirectory)../../Lambda.GraphQL.Build/bin/$(Configuration)/net6.0/Lambda.GraphQL.Build.dll" 
              Condition="!Exists('$(MSBuildThisFileDirectory)../tools/Lambda.GraphQL.Build.dll') AND Exists('$(MSBuildThisFileDirectory)../../Lambda.GraphQL.Build/bin/$(Configuration)/net6.0/Lambda.GraphQL.Build.dll')" />
+  
+  <!-- Fallback to Release if current configuration doesn't exist -->
+  <UsingTask TaskName="Lambda.GraphQL.Build.ExtractGraphQLSchemaTask" 
+             AssemblyFile="$(MSBuildThisFileDirectory)../../Lambda.GraphQL.Build/bin/Release/net6.0/Lambda.GraphQL.Build.dll" 
+             Condition="!Exists('$(MSBuildThisFileDirectory)../tools/Lambda.GraphQL.Build.dll') AND !Exists('$(MSBuildThisFileDirectory)../../Lambda.GraphQL.Build/bin/$(Configuration)/net6.0/Lambda.GraphQL.Build.dll') AND Exists('$(MSBuildThisFileDirectory)../../Lambda.GraphQL.Build/bin/Release/net6.0/Lambda.GraphQL.Build.dll')" />
+  
+  <!-- Fallback to Debug if neither current nor Release exist -->
+  <UsingTask TaskName="Lambda.GraphQL.Build.ExtractGraphQLSchemaTask" 
+             AssemblyFile="$(MSBuildThisFileDirectory)../../Lambda.GraphQL.Build/bin/Debug/net6.0/Lambda.GraphQL.Build.dll" 
+             Condition="!Exists('$(MSBuildThisFileDirectory)../tools/Lambda.GraphQL.Build.dll') AND !Exists('$(MSBuildThisFileDirectory)../../Lambda.GraphQL.Build/bin/$(Configuration)/net6.0/Lambda.GraphQL.Build.dll') AND !Exists('$(MSBuildThisFileDirectory)../../Lambda.GraphQL.Build/bin/Release/net6.0/Lambda.GraphQL.Build.dll') AND Exists('$(MSBuildThisFileDirectory)../../Lambda.GraphQL.Build/bin/Debug/net6.0/Lambda.GraphQL.Build.dll')" />
 
   <!-- Additional fallback for different project structures -->
   <UsingTask TaskName="Lambda.GraphQL.Build.ExtractGraphQLSchemaTask" 
              AssemblyFile="$(OutputPath)Lambda.GraphQL.Build.dll" 
-             Condition="!Exists('$(MSBuildThisFileDirectory)../tools/Lambda.GraphQL.Build.dll') AND !Exists('$(MSBuildThisFileDirectory)../../Lambda.GraphQL.Build/bin/$(Configuration)/net6.0/Lambda.GraphQL.Build.dll') AND Exists('$(OutputPath)Lambda.GraphQL.Build.dll')" />
+             Condition="!Exists('$(MSBuildThisFileDirectory)../tools/Lambda.GraphQL.Build.dll') AND !Exists('$(MSBuildThisFileDirectory)../../Lambda.GraphQL.Build/bin/$(Configuration)/net6.0/Lambda.GraphQL.Build.dll') AND !Exists('$(MSBuildThisFileDirectory)../../Lambda.GraphQL.Build/bin/Release/net6.0/Lambda.GraphQL.Build.dll') AND !Exists('$(MSBuildThisFileDirectory)../../Lambda.GraphQL.Build/bin/Debug/net6.0/Lambda.GraphQL.Build.dll') AND Exists('$(OutputPath)Lambda.GraphQL.Build.dll')" />
 
   <Target Name="ExtractGraphQLSchema" 
           AfterTargets="Build" 

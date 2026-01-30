@@ -11,18 +11,18 @@ namespace Lambda.GraphQL.Examples;
 /// </summary>
 public class ProductFunctions
 {
-    [LambdaFunction]
+    [LambdaFunction(MemorySize = 1024, Timeout = 30)]
     [GraphQLQuery("getProduct", Description = "Get a product by ID")]
-    [GraphQLResolver(DataSource = "ProductsLambda")]
+    [GraphQLResolver]
     public Task<Product> GetProduct(string id)
     {
         // TODO: Implement product retrieval
         return Task.FromResult(new Product { Id = id, Name = "Sample Product", Price = 99.99m });
     }
 
-    [LambdaFunction]
+    [LambdaFunction(MemorySize = 512, Timeout = 15)]
     [GraphQLMutation("createProduct", Description = "Create a new product")]
-    [GraphQLResolver(DataSource = "ProductsLambda")]
+    [GraphQLResolver]
     public Task<Product> CreateProduct(CreateProductInput input)
     {
         // TODO: Implement product creation
