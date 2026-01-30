@@ -24,6 +24,8 @@ interface ResolverConfig {
   timeout?: number;
   role?: string;
   policies?: string[];
+  // Resolver behavior
+  usesLambdaContext?: boolean;
 }
 
 interface DataSourceConfig {
@@ -133,28 +135,42 @@ export class GraphQLApiStack extends cdk.Stack {
         fieldName: resolverConfig.fieldName,
         dataSource,
         runtime: appsync.FunctionRuntime.JS_1_0_0,
-        code: appsync.Code.fromInline(`
-          // AppSync JavaScript resolver for ${resolverConfig.typeName}.${resolverConfig.fieldName}
-          export function request(ctx) {
-            return {
-              operation: 'Invoke',
-              payload: {
-                field: '${resolverConfig.fieldName}',
-                arguments: ctx.arguments,
-                source: ctx.source,
-                identity: ctx.identity,
-                request: ctx.request,
-              },
-            };
-          }
-
-          export function response(ctx) {
-            if (ctx.error) {
-              util.error(ctx.error.message, ctx.error.type);
-            }
-            return ctx.result;
-          }
-        `),
+        code: appsync.Code.fromInline(
+          resolverConfig.usesLambdaContext
+            ? // Full context mode - Lambda uses ILambdaContext or AppSync-specific types
+              `export function request(ctx) {
+                return {
+                  operation: 'Invoke',
+                  payload: {
+                    field: '${resolverConfig.fieldName}',
+                    arguments: ctx.arguments,
+                    source: ctx.source,
+                    identity: ctx.identity,
+                    request: ctx.request,
+                  },
+                };
+              }
+              export function response(ctx) {
+                if (ctx.error) {
+                  util.error(ctx.error.message, ctx.error.type);
+                }
+                return ctx.result;
+              }`
+            : // Arguments-only mode - send as single value if one arg, object if multiple
+              `export function request(ctx) {
+                const argKeys = Object.keys(ctx.arguments);
+                return {
+                  operation: 'Invoke',
+                  payload: argKeys.length === 1 ? ctx.arguments[argKeys[0]] : ctx.arguments,
+                };
+              }
+              export function response(ctx) {
+                if (ctx.error) {
+                  util.error(ctx.error.message, ctx.error.type);
+                }
+                return ctx.result;
+              }`
+        ),
       });
     }
 

@@ -2,7 +2,7 @@
 
 **Project**: Lambda.GraphQL - GraphQL Schema Generation for AWS AppSync  
 **Duration**: January 8-11, 2026 + January 28, 30, 2026  
-**Total Time**: ~17 hours  
+**Total Time**: ~20 hours  
 **Developer**: Solo project with Kiro CLI assistance
 
 ## Project Overview
@@ -101,14 +101,95 @@ Created `docs/resolver-manifest.md` documenting Lambda Annotations architecture 
 
 ---
 
+## Day 7 - January 30, 2026 (Afternoon) - Lambda Annotations Integration & Deployment Testing
+**Time Spent**: 3 hours
+
+### Lambda Annotations Configuration Extraction
+
+**Issue**: CDK was hardcoding Lambda configuration (memory, timeout) instead of using values from `[LambdaFunction]` attribute.
+
+**Implementation**:
+- Added extraction of `MemorySize`, `Timeout`, `ResourceName`, `Role`, and `Policies` from `[LambdaFunction]` attribute
+- Extended `ResolverInfo` model with Lambda configuration properties
+- Updated manifest generator to include configuration in `resolvers.json`
+- Modified CDK to use extracted values with sensible defaults
+
+**Example**:
+```csharp
+[LambdaFunction(MemorySize = 1024, Timeout = 30)]
+[GraphQLQuery("getProduct")]
+public Task<Product> GetProduct(string id) { }
+```
+Generates: `{ "memorySize": 1024, "timeout": 30 }` in manifest, which CDK uses for Lambda configuration.
+
+### Data Source Name Management
+
+**Issue**: Manual `DataSource` parameter caused confusion and potential conflicts with Lambda Annotations' one-function-per-method architecture.
+
+**Solution**:
+- Made `DataSource` optional on `[GraphQLResolver]` attribute
+- Auto-generate unique names (`{MethodName}DataSource`) when not specified
+- Added compile-time validation to detect duplicate data source names pointing to different Lambda functions
+- Provides clear error message if conflicts detected
+
+**Rationale**: Each Lambda function needs its own data source in AppSync. Auto-generation ensures uniqueness while allowing manual override for special cases.
+
+### AppSync Resolver Payload Handling
+
+**Issue**: Lambda functions were failing with deserialization errors because AppSync was sending full context object but Lambda expected simple parameters.
+
+**Root Cause**: Lambda Annotations with `ANNOTATIONS_HANDLER` expects payload to match method signature exactly.
+
+**Solution**:
+- Added `UsesLambdaContext` flag to track if Lambda uses `ILambdaContext` parameter
+- Generate different AppSync resolver code based on Lambda signature:
+  - **Simple parameters**: Send `ctx.arguments` directly (or single value for single-arg methods)
+  - **Uses ILambdaContext**: Send full context with `field`, `arguments`, `source`, `identity`, `request`
+- CDK generates appropriate JavaScript resolver code based on flag
+
+**Example**:
+```csharp
+// Simple - sends just "1234"
+public Task<Product> GetProduct(string id)
+
+// Context-aware - sends full AppSync context
+public Task<Product> GetProduct(string id, ILambdaContext context)
+```
+
+### JSON Serialization Alignment
+
+**Issue**: GraphQL field renamed with `[GraphQLField("displayName")]` but Lambda returned `{ Name: "..." }` causing null errors.
+
+**Solution**: Added `[JsonPropertyName("displayName")]` to ensure JSON serialization matches GraphQL schema field names.
+
+**Learning**: When renaming GraphQL fields, must also control JSON serialization to match.
+
+### Code Organization
+
+- Extracted Lambda functions from `AdvancedTypes.cs` into separate `AdvancedFunctions.cs`
+- Removed unnecessary `GeneratedTest` file generation
+- Cleaned up example project structure for clarity
+
+### Deployment Validation
+
+Successfully deployed to AWS AppSync and verified:
+- ✅ Schema uploaded correctly
+- ✅ Data sources created (one per Lambda function)
+- ✅ Resolvers configured with correct payload handling
+- ✅ Lambda functions deployed with extracted configuration
+- ✅ GraphQL queries execute successfully
+
+---
+
 ## Final Statistics
 
-- **Total Time**: ~17 hours
+- **Total Time**: ~20 hours
 - **Lines of Code**: ~3,500 (source) + 6,500 (documentation)
 - **Tests**: 84 (100% passing)
 - **Packages**: 3 (main, source generator, build task)
-- **Documentation Files**: 8
+- **Documentation Files**: 9
 - **Example Projects**: 2 (Lambda functions, CDK deployment)
+- **Deployed & Tested**: AWS AppSync with working resolvers
 
 ---
 
@@ -122,6 +203,10 @@ Created `docs/resolver-manifest.md` documenting Lambda Annotations architecture 
 
 💡 **CDK manifest-driven deployment** enables complete infrastructure-as-code from C# attributes, bridging .NET and AWS CDK worlds
 
+💡 **AppSync resolver payload format** must match Lambda Annotations expectations - single values for single parameters, objects for multiple parameters
+
+💡 **JSON serialization alignment** critical when renaming GraphQL fields - use `[JsonPropertyName]` to match schema
+
 💡 **Kiro CLI steering documents** provide consistent AI context across multi-day projects, essential for maintaining architectural coherence
 
 ---
@@ -134,13 +219,17 @@ Created `docs/resolver-manifest.md` documenting Lambda Annotations architecture 
 ✅ Zero build warnings, 100% test pass rate  
 ✅ Production-ready CDK deployment example  
 ✅ Real-world AppSync validation caught critical bugs before release  
+✅ Successfully deployed and tested end-to-end with AWS AppSync  
+✅ Lambda Annotations configuration flows through to deployed infrastructure  
 
 ### Challenges Overcome
 🔧 Roslyn file writing restrictions → Two-stage generation approach  
 🔧 Type resolution accuracy → FullyQualifiedFormat discovery  
 🔧 Lambda Annotations routing → Architecture deep-dive and CDK fixes  
 🔧 AppSync schema validation → Real-world testing revealed edge cases  
+🔧 Payload deserialization → Context-aware resolver generation  
+🔧 JSON serialization → Field name alignment with GraphQL schema  
 
 ---
 
-**Status**: Complete and ready for submission. All validation issues resolved, comprehensive documentation, production-ready examples.
+**Status**: Complete, deployed, and tested. All validation issues resolved, comprehensive documentation, production-ready examples with working AWS deployment.

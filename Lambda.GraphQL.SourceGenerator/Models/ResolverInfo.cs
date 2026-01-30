@@ -27,6 +27,9 @@ public sealed class ResolverInfo
     public int? Timeout { get; set; }
     public List<string> Policies { get; set; } = new();
     public string? Role { get; set; }
+    
+    // Resolver behavior flags
+    public bool UsesLambdaContext { get; set; }
 }
 
 /// <summary>

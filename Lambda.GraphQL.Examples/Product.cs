@@ -1,4 +1,5 @@
 using Lambda.GraphQL.Attributes;
+using System.Text.Json.Serialization;
 
 namespace Lambda.GraphQL.Examples;
 
@@ -12,6 +13,7 @@ public class Product
     public string Id { get; set; } = string.Empty;
 
     [GraphQLField("displayName", Description = "Product display name")]
+    [JsonPropertyName("displayName")]
     public string Name { get; set; } = string.Empty;
 
     [GraphQLField(Description = "Product price in USD")]

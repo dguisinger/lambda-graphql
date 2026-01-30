@@ -53,6 +53,13 @@ public static class ResolverManifestGenerator
                 sb.AppendLine($"      \"lambdaFunctionName\": \"{EscapeJson(r.LambdaFunctionName ?? "")}\",");
                 sb.Append($"      \"lambdaFunctionLogicalId\": \"{EscapeJson(r.LambdaFunctionLogicalId ?? "")}\"");
                 
+                // Include resolver behavior flags
+                if (r.UsesLambdaContext)
+                {
+                    sb.AppendLine(",");
+                    sb.Append($"      \"usesLambdaContext\": true");
+                }
+                
                 // Include Lambda Annotations configuration if present
                 if (!string.IsNullOrEmpty(r.ResourceName))
                 {

@@ -1,9 +1,5 @@
 # Lambda.GraphQL
 
-[![NuGet](https://img.shields.io/nuget/v/Lambda.GraphQL.svg)](https://www.nuget.org/packages/Lambda.GraphQL/)
-[![Build Status](https://img.shields.io/github/workflow/status/your-org/lambda-graphql/CI)](https://github.com/your-org/lambda-graphql/actions)
-[![License](https://img.shields.io/github/license/your-org/lambda-graphql)](LICENSE)
-
 A .NET library that generates GraphQL schemas from C# Lambda functions for AWS AppSync. Provides compile-time schema generation through source generators and MSBuild tasks, enabling type-safe GraphQL API development with AWS Lambda Annotations.
 
 ## ✨ Features
@@ -92,9 +88,9 @@ public class CreateProductInput
 // 3. Implement Lambda functions with GraphQL operations
 public class ProductFunctions
 {
-    [LambdaFunction]
+    [LambdaFunction(MemorySize = 1024, Timeout = 30)]
     [GraphQLQuery("getProduct", Description = "Get a product by ID")]
-    [GraphQLResolver(DataSource = "ProductsLambda")]
+    [GraphQLResolver]  // DataSource auto-generated as "GetProductDataSource"
     public async Task<Product> GetProduct(
         [GraphQLArgument(Description = "Product ID")] Guid id)
     {
@@ -107,9 +103,9 @@ public class ProductFunctions
         };
     }
 
-    [LambdaFunction]
+    [LambdaFunction(MemorySize = 512, Timeout = 15)]
     [GraphQLMutation("createProduct", Description = "Create a new product")]
-    [GraphQLResolver(DataSource = "ProductsLambda")]
+    [GraphQLResolver]  // DataSource auto-generated as "CreateProductDataSource"
     public async Task<Product> CreateProduct(
         [GraphQLArgument] CreateProductInput input)
     {
@@ -190,27 +186,55 @@ type Mutation {
       "typeName": "Query",
       "fieldName": "getProduct",
       "kind": "UNIT",
-      "dataSource": "ProductsLambda",
-      "lambdaFunctionName": "GetProduct"
+      "dataSource": "GetProductDataSource",
+      "lambdaFunctionName": "GetProduct",
+      "lambdaFunctionLogicalId": "GetProductFunction",
+      "memorySize": 1024,
+      "timeout": 30
     },
     {
       "typeName": "Mutation", 
       "fieldName": "createProduct",
       "kind": "UNIT",
-      "dataSource": "ProductsLambda",
-      "lambdaFunctionName": "CreateProduct"
+      "dataSource": "CreateProductDataSource",
+      "lambdaFunctionName": "CreateProduct",
+      "lambdaFunctionLogicalId": "CreateProductFunction",
+      "memorySize": 512,
+      "timeout": 15
     }
   ],
   "dataSources": [
     {
-      "name": "ProductsLambda",
-      "type": "AWS_LAMBDA"
+      "name": "GetProductDataSource",
+      "type": "AWS_LAMBDA",
+      "lambdaConfig": {
+        "functionArn": "${GetProductFunction.Arn}"
+      }
+    },
+    {
+      "name": "CreateProductDataSource",
+      "type": "AWS_LAMBDA",
+      "lambdaConfig": {
+        "functionArn": "${CreateProductFunction.Arn}"
+      }
     }
   ]
 }
 ```
 
 ## 🎯 Advanced Features
+
+### Lambda Annotations Configuration
+```csharp
+[LambdaFunction(
+    MemorySize = 2048,
+    Timeout = 60,
+    Policies = new[] { "AmazonDynamoDBFullAccess" }
+)]
+[GraphQLQuery("complexQuery")]
+public async Task<Result> ComplexQuery(string param) { }
+```
+Configuration automatically flows to deployed Lambda functions via CDK.
 
 ### Union Types
 ```csharp
