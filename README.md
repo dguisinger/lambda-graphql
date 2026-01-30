@@ -2,6 +2,12 @@
 
 A .NET library that generates GraphQL schemas from C# Lambda functions for AWS AppSync. Provides compile-time schema generation through source generators and MSBuild tasks, enabling type-safe GraphQL API development with AWS Lambda Annotations.
 
+## 🎥 Demo Video
+
+**[Watch the 4-minute demo →](https://youtu.be/jeG7NeQ21V8)**
+
+See Lambda.GraphQL in action: from C# code to deployed AppSync API with working GraphQL queries.
+
 ## ✨ Features
 
 - **🔧 Compile-Time Generation** - GraphQL schemas generated during build with zero runtime overhead
